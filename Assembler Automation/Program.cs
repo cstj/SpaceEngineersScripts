@@ -23,10 +23,13 @@ namespace IngameScript
         Dictionary<string, int> largeList;
         Dictionary<string, double> invAmounts;
 
+        Dictionary<string, string> TypeToBlueprint;
+
         public Program()
         {
             //Update every 10 ticks
             Runtime.UpdateFrequency = UpdateFrequency.Update10;
+            //Runtime.UpdateFrequency = UpdateFrequency.Once;
 
             //Setup List of large blocks.
             largeList = new Dictionary<string, int>();
@@ -43,45 +46,66 @@ namespace IngameScript
             largeList.Add("Computer", 6500);
             largeList.Add("Reactor", 10000);
             largeList.Add("Thrust", 16000);
-            //Grav Missing
-            //Meidcal
+            largeList.Add("GravityGenerator", 250);
+            largeList.Add("Medical", 250);
             largeList.Add("RadioCommunication", 250);
-            //Detector Components
+            largeList.Add("Detector", 500);
             largeList.Add("Explosives", 500);
-            //Solar Cell
+            largeList.Add("SolarCell", 1000);
             largeList.Add("PowerCell", 2800);
-            largeList.Add("SuperConductor", 3000);
+            largeList.Add("Superconductor", 3000);
 
             largeList.Add("5p56x45mm", 500);        //Personal Ammo
             largeList.Add("25x184mm", 500);         //Ship Ammo
-            largeList.Add("missile200mm", 500);     //Ship Ammo
+            largeList.Add("Missile200mm", 500);     //Ship Ammo
+
+            TypeToBlueprint = new Dictionary<string, string>
+            {
+                { "Construction", "MyObjectBuilder_BlueprintDefinition/ConstructionComponent" },
+                { "MetalGrid", "MyObjectBuilder_BlueprintDefinition/MetalGrid" },
+                { "InteriorPlate", "MyObjectBuilder_BlueprintDefinition/InteriorPlate" },
+                { "SteelPlate", "MyObjectBuilder_BlueprintDefinition/SteelPlate" },
+                { "Girder", "MyObjectBuilder_BlueprintDefinition/GirderComponent" },
+                { "SmallTube", "MyObjectBuilder_BlueprintDefinition/SmallTube" },
+                { "LargeTube", "MyObjectBuilder_BlueprintDefinition/LargeTube" },
+                { "Motor", "MyObjectBuilder_BlueprintDefinition/MotorComponent" },
+                { "Display", "MyObjectBuilder_BlueprintDefinition/Display" },
+                { "BulletproofGlass", "MyObjectBuilder_BlueprintDefinition/BulletproofGlass" },
+                { "Computer", "MyObjectBuilder_BlueprintDefinition/ComputerComponent" },
+                { "Reactor", "MyObjectBuilder_BlueprintDefinition/ReactorComponent" },
+                { "Thrust", "MyObjectBuilder_BlueprintDefinition/ThrustComponent" },
+                { "GravityGenerator", "MyObjectBuilder_BlueprintDefinition/GravityGeneratorComponent" },
+                { "Medical", "MyObjectBuilder_BlueprintDefinition/MedicalComponent" },
+                { "RadioCommunication", "MyObjectBuilder_BlueprintDefinition/RadioCommunicationComponent" },
+                { "Detector", "MyObjectBuilder_BlueprintDefinition/DetectorComponent" },
+                { "Explosives", "MyObjectBuilder_BlueprintDefinition/ExplosivesComponent" },
+                { "SolarCell", "MyObjectBuilder_BlueprintDefinition/SolarCell" },
+                { "PowerCell", "MyObjectBuilder_BlueprintDefinition/PowerCell" },
+                { "Superconductor", "MyObjectBuilder_BlueprintDefinition/Superconductor" },
+                { "25x184mm", "MyObjectBuilder_BlueprintDefinition/NATO_25x184mmMagazine" },
+                { "5p56x45mm", "MyObjectBuilder_BlueprintDefinition/NATO_5p56x45mmMagazine" },
+                { "Missile200mm", "MyObjectBuilder_BlueprintDefinition/Missile200mm" }
+            };
 
             /*
-            largeList.Add("Construction", 50000);
-            largeList.Add("MetalGrid", 15500);
-            largeList.Add("Interior", 55000);
-            largeList.Add("Steelplate", 300000);
-            largeList.Add("Girder", 3500);
-            largeList.Add("SmallTube", 26000);
-            largeList.Add("LargeTube", 6000);
-            largeList.Add("Motor", 16000);
-            largeList.Add("Display", 500);
-            largeList.Add("Glass", 12000);
-            largeList.Add("Computer", 6500);
-            largeList.Add("Reactor", 10000);
-            largeList.Add("Thrust", 16000);
-            //Grav Missing
-            //Meidcal
-            largeList.Add("Radio", 250);
-            //Detector Components
-            largeList.Add("Explosives", 500);
-            //Solar Cell
-            largeList.Add("PowerCell", 2800);
-            largeList.Add("SuperConductor", 3000);
-
-            largeList.Add("5p56x45mm", 500);        //Personal Ammo
-            largeList.Add("25x184mm", 500);         //Ship Ammo
-            largeList.Add("missile200mm", 500);     //Ship Ammo
+            TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/AngleGrinder");
+            TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/AngleGrinder2");
+            TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/AngleGrinder3");
+            TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/AngleGrinder4");
+            TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/HandDrill");
+            TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/HandDrill2");
+            TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/HandDrill3");
+            TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/HandDrill4");
+            TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/Welder");
+            TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/Welder2");
+            TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/Welder3");
+            TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/Welder4");
+            TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/AutomaticRifle");
+            TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/PreciseAutomaticRifle");
+            TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/RapidFireAutomaticRifle");
+            TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/UltimateAutomaticRifle");
+            TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/HydrogenBottle");
+            TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/OxygenBottle");
             */
         }
 
@@ -105,50 +129,65 @@ namespace IngameScript
             List<IMyTerminalBlock> prod = new List<IMyTerminalBlock>();
             GridTerminalSystem.GetBlocksOfType<IMyProductionBlock>(prod);
 
-            Echo("Processing Automated Assemblers");
-            string status;
-            int neededAmt;
-            double currentAmt;
+            bool found = false;
+            StringBuilder status; 
+            MyDefinitionId blueprint;
+            string blueprintName;
+
             int i;
             for (i = 0; i < prod.Count; i++)
             {
                 IMyProductionBlock p = (IMyProductionBlock)prod[i];
                 //Echo("Processing " + p.CustomName);
-                if (p.CustomName.Contains("[") && p.CustomName.Contains("]"))
+                if (p.CustomName.Contains("[Primary]"))
                 {
-                    int sqrStr = p.CustomName.IndexOf('[');
-                    int sqrEndStr = p.CustomName.IndexOf(']');
-                    string assItem = p.CustomName.Substring(sqrStr + 1, sqrEndStr - (sqrStr + 1));
-                   // Echo("Found Item Name: " + assItem + " - Getting Needed amt");
+                    Echo("Processing Inventory");
+                    //Get Queue
+                    List<MyProductionItem> queue = new List<MyProductionItem>();
+                    p.GetQueue(queue);
 
-                    //Get Needed Amt and Current Amt
-                    if (largeList.TryGetValue(assItem, out neededAmt))
+                    //Work out what we need
+                    foreach(KeyValuePair<string, int> req in largeList)
                     {
-                        //Echo("Getting Current Amount");
-                        if (!invAmounts.TryGetValue(assItem, out currentAmt))
-                        {
-                            currentAmt = 0;
-                        }
+                        double amt = 0;
+                        invAmounts.TryGetValue(req.Key, out amt);
+                        status = new StringBuilder(req.Key);
+                        status.Append(" - ");
+                        status.Append(amt);
+                        status.Append("/");
+                        status.Append(req.Value);
 
-                        if (neededAmt > 1000)
-                            status = assItem + " " + Math.Round((double)(currentAmt / 1000), 1) + "k/" + (neededAmt / 1000) + "k";
-                        else
-                            status = assItem + " " + (double)(currentAmt) + "/" + (neededAmt);
-
-                        //If our current amount is less than the needed amount then lets start the assembler
-                        if (currentAmt < neededAmt)
+                        //Test if we need those!
+                        if (amt < req.Value)
                         {
-                            status = status + " - ON";
-                            p.GetActionWithName("OnOff_On").Apply(p);
+                            //Test Queue for this item, if we dont have any in the queue the lets queue say 100?
+                            blueprintName = TypeToBlueprint[req.Key];
+                            if (!queue.Where(d => d.BlueprintId.ToString() == blueprintName).Any())
+                            {
+                                status.Append(" - Adding");
+                                //Echo(req.Key);
+                                blueprint = MyDefinitionId.Parse(blueprintName);
+                                p.AddQueueItem(blueprint, 100f);
+                            }
+                            else
+                            {
+                                status.Append(" - In List");
+                            }
                         }
                         else
                         {
-                            status = status + " - OFF";
-                            p.GetActionWithName("OnOff_Off").Apply(p);
+                            status.Append(" - Full");
                         }
-                        Echo(status);
+                        Echo(status.ToString());
                     }
+                    found = true;
+                    break;
                 }
+            }
+
+            if (found == false)
+            {
+                Echo("Could not find assembler.  Please put [Primary] in an assembler name.");
             }
         }
 
