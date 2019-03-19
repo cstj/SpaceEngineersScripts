@@ -33,31 +33,31 @@ namespace IngameScript
 
             //Setup List of large blocks.
             largeList = new Dictionary<string, int>();
-            largeList.Add("Construction", 50000);
-            largeList.Add("MetalGrid", 15500);
-            largeList.Add("InteriorPlate", 55000);
-            largeList.Add("SteelPlate", 300000);
-            largeList.Add("Girder", 3500);
-            largeList.Add("SmallTube", 26000);
-            largeList.Add("LargeTube", 6000);
-            largeList.Add("Motor", 16000);
-            largeList.Add("Display", 500);
-            largeList.Add("BulletproofGlass", 12000);
-            largeList.Add("Computer", 6500);
-            largeList.Add("Reactor", 10000);
-            largeList.Add("Thrust", 16000);
-            largeList.Add("GravityGenerator", 250);
-            largeList.Add("Medical", 250);
-            largeList.Add("RadioCommunication", 250);
-            largeList.Add("Detector", 500);
-            largeList.Add("Explosives", 500);
-            largeList.Add("SolarCell", 1000);
-            largeList.Add("PowerCell", 2800);
-            largeList.Add("Superconductor", 3000);
+            largeList.Add("Construction", 1000);
+            largeList.Add("MetalGrid", 200);
+            largeList.Add("InteriorPlate", 1000);
+            largeList.Add("SteelPlate", 1000);
+            largeList.Add("Girder", 200);
+            largeList.Add("SmallTube", 500);
+            largeList.Add("LargeTube", 200);
+            largeList.Add("Motor", 500);
+            largeList.Add("Display", 100);
+            largeList.Add("BulletproofGlass", 300);
+            largeList.Add("Computer", 500);
+            largeList.Add("Reactor", 200);
+            largeList.Add("Thrust", 200);
+            largeList.Add("GravityGenerator", 50);
+            largeList.Add("Medical", 20);
+            largeList.Add("RadioCommunication", 100);
+            largeList.Add("Detector", 100);
+            largeList.Add("Explosives", 50);
+            largeList.Add("SolarCell", 100);
+            largeList.Add("PowerCell", 200);
+            largeList.Add("Superconductor", 100);
 
-            largeList.Add("5p56x45mm", 500);        //Personal Ammo
-            largeList.Add("25x184mm", 500);         //Ship Ammo
-            largeList.Add("Missile200mm", 500);     //Ship Ammo
+            largeList.Add("5p56x45mm", 100);        //Personal Ammo
+            largeList.Add("25x184mm", 100);         //Ship Ammo
+            largeList.Add("Missile200mm", 100);     //Ship Ammo
 
             TypeToBlueprint = new Dictionary<string, string>
             {
