@@ -19,11 +19,12 @@ namespace IngameScript
 {
     partial class Program : MyGridProgram
     {
-        //List<IntStore> largeList;
         Dictionary<string, int> largeList;
         Dictionary<string, double> invAmounts;
-
+        Dictionary<string, double> queuedAmounts;
         Dictionary<string, string> TypeToBlueprint;
+
+        Double AddAmount =50f;
 
         public Program()
         {
@@ -33,59 +34,91 @@ namespace IngameScript
 
             //Setup List of large blocks.
             largeList = new Dictionary<string, int>();
-            largeList.Add("Construction", 1000);
-            largeList.Add("MetalGrid", 200);
-            largeList.Add("InteriorPlate", 1000);
-            largeList.Add("SteelPlate", 1000);
-            largeList.Add("Girder", 200);
-            largeList.Add("SmallTube", 500);
-            largeList.Add("LargeTube", 200);
-            largeList.Add("Motor", 500);
-            largeList.Add("Display", 100);
-            largeList.Add("BulletproofGlass", 300);
-            largeList.Add("Computer", 500);
-            largeList.Add("Reactor", 200);
-            largeList.Add("Thrust", 200);
-            largeList.Add("GravityGenerator", 50);
-            largeList.Add("Medical", 20);
-            largeList.Add("RadioCommunication", 100);
-            largeList.Add("Detector", 100);
-            largeList.Add("Explosives", 50);
-            largeList.Add("SolarCell", 100);
-            largeList.Add("PowerCell", 200);
-            largeList.Add("Superconductor", 100);
+            largeList.Add("MyObjectBuilder_BlueprintDefinition/ConstructionComponent", 4000);
+            largeList.Add("MyObjectBuilder_BlueprintDefinition/MetalGrid", 200);
+            largeList.Add("MyObjectBuilder_BlueprintDefinition/InteriorPlate", 3000);
+            largeList.Add("MyObjectBuilder_BlueprintDefinition/SteelPlate", 10000);
+            largeList.Add("MyObjectBuilder_BlueprintDefinition/GirderComponent", 200);
+            largeList.Add("MyObjectBuilder_BlueprintDefinition/SmallTube", 3000);
+            largeList.Add("MyObjectBuilder_BlueprintDefinition/LargeTube", 500);
+            largeList.Add("MyObjectBuilder_BlueprintDefinition/MotorComponent", 500);
+            largeList.Add("MyObjectBuilder_BlueprintDefinition/Display", 100);
+            largeList.Add("MyObjectBuilder_BlueprintDefinition/BulletproofGlass", 300);
+            largeList.Add("MyObjectBuilder_BlueprintDefinition/ComputerComponent", 1000);
+            largeList.Add("MyObjectBuilder_BlueprintDefinition/ReactorComponent", 300);
+            largeList.Add("MyObjectBuilder_BlueprintDefinition/ThrustComponent", 1000);
+            largeList.Add("MyObjectBuilder_BlueprintDefinition/GravityGeneratorComponent", 50);
+            largeList.Add("MyObjectBuilder_BlueprintDefinition/MedicalComponent", 20);
+            largeList.Add("MyObjectBuilder_BlueprintDefinition/RadioCommunicationComponent", 100);
+            largeList.Add("MyObjectBuilder_BlueprintDefinition/DetectorComponent", 100);
+            largeList.Add("MyObjectBuilder_BlueprintDefinition/ExplosivesComponent", 50);
+            largeList.Add("MyObjectBuilder_BlueprintDefinition/SolarCell", 100);
+            largeList.Add("MyObjectBuilder_BlueprintDefinition/PowerCell", 200);
+            largeList.Add("MyObjectBuilder_BlueprintDefinition/Superconductor", 100);
 
-            largeList.Add("5p56x45mm", 100);        //Personal Ammo
-            largeList.Add("25x184mm", 100);         //Ship Ammo
-            largeList.Add("Missile200mm", 100);     //Ship Ammo
+            //Ammo
+            largeList.Add("MyObjectBuilder_BlueprintDefinition/NATO_5p56x45mmMagazine", 100);        //Personal Ammo
+            largeList.Add("MyObjectBuilder_BlueprintDefinition/NATO_25x184mmMagazine", 100);         //Ship Ammo
+            largeList.Add("MyObjectBuilder_BlueprintDefinition/Missile200mm", 100);     //Ship Ammo
+
+            //Hand Tools
+            largeList.Add("MyObjectBuilder_BlueprintDefinition/AngleGrinder4", 5);
+            largeList.Add("MyObjectBuilder_BlueprintDefinition/HandDrill4", 5);
+            largeList.Add("MyObjectBuilder_BlueprintDefinition/Welder4", 5);
+            largeList.Add("MyObjectBuilder_BlueprintDefinition/UltimateAutomaticRifle", 5);
+
+            //Items
+            largeList.Add("MyObjectBuilder_BlueprintDefinition/HydrogenBottle", 5);
+            largeList.Add("MyObjectBuilder_BlueprintDefinition/OxygenBottle", 5);
 
             TypeToBlueprint = new Dictionary<string, string>
             {
-                { "Construction", "MyObjectBuilder_BlueprintDefinition/ConstructionComponent" },
-                { "MetalGrid", "MyObjectBuilder_BlueprintDefinition/MetalGrid" },
-                { "InteriorPlate", "MyObjectBuilder_BlueprintDefinition/InteriorPlate" },
-                { "SteelPlate", "MyObjectBuilder_BlueprintDefinition/SteelPlate" },
-                { "Girder", "MyObjectBuilder_BlueprintDefinition/GirderComponent" },
-                { "SmallTube", "MyObjectBuilder_BlueprintDefinition/SmallTube" },
-                { "LargeTube", "MyObjectBuilder_BlueprintDefinition/LargeTube" },
-                { "Motor", "MyObjectBuilder_BlueprintDefinition/MotorComponent" },
-                { "Display", "MyObjectBuilder_BlueprintDefinition/Display" },
-                { "BulletproofGlass", "MyObjectBuilder_BlueprintDefinition/BulletproofGlass" },
-                { "Computer", "MyObjectBuilder_BlueprintDefinition/ComputerComponent" },
-                { "Reactor", "MyObjectBuilder_BlueprintDefinition/ReactorComponent" },
-                { "Thrust", "MyObjectBuilder_BlueprintDefinition/ThrustComponent" },
-                { "GravityGenerator", "MyObjectBuilder_BlueprintDefinition/GravityGeneratorComponent" },
-                { "Medical", "MyObjectBuilder_BlueprintDefinition/MedicalComponent" },
-                { "RadioCommunication", "MyObjectBuilder_BlueprintDefinition/RadioCommunicationComponent" },
-                { "Detector", "MyObjectBuilder_BlueprintDefinition/DetectorComponent" },
-                { "Explosives", "MyObjectBuilder_BlueprintDefinition/ExplosivesComponent" },
-                { "SolarCell", "MyObjectBuilder_BlueprintDefinition/SolarCell" },
-                { "PowerCell", "MyObjectBuilder_BlueprintDefinition/PowerCell" },
-                { "Superconductor", "MyObjectBuilder_BlueprintDefinition/Superconductor" },
-                { "25x184mm", "MyObjectBuilder_BlueprintDefinition/NATO_25x184mmMagazine" },
-                { "5p56x45mm", "MyObjectBuilder_BlueprintDefinition/NATO_5p56x45mmMagazine" },
-                { "Missile200mm", "MyObjectBuilder_BlueprintDefinition/Missile200mm" }
+                { "MyObjectBuilder_Component/Construction", "MyObjectBuilder_BlueprintDefinition/ConstructionComponent" },
+                { "MyObjectBuilder_Component/MetalGrid", "MyObjectBuilder_BlueprintDefinition/MetalGrid" },
+                { "MyObjectBuilder_Component/InteriorPlate", "MyObjectBuilder_BlueprintDefinition/InteriorPlate" },
+                { "MyObjectBuilder_Component/SteelPlate", "MyObjectBuilder_BlueprintDefinition/SteelPlate" },
+                { "MyObjectBuilder_Component/Girder", "MyObjectBuilder_BlueprintDefinition/GirderComponent" },
+                { "MyObjectBuilder_Component/SmallTube", "MyObjectBuilder_BlueprintDefinition/SmallTube" },
+                { "MyObjectBuilder_Component/LargeTube", "MyObjectBuilder_BlueprintDefinition/LargeTube" },
+                { "MyObjectBuilder_Component/Motor", "MyObjectBuilder_BlueprintDefinition/MotorComponent" },
+                { "MyObjectBuilder_Component/Display", "MyObjectBuilder_BlueprintDefinition/Display" },
+                { "MyObjectBuilder_Component/BulletproofGlass", "MyObjectBuilder_BlueprintDefinition/BulletproofGlass" },
+                { "MyObjectBuilder_Component/Computer", "MyObjectBuilder_BlueprintDefinition/ComputerComponent" },
+                { "MyObjectBuilder_Component/Reactor", "MyObjectBuilder_BlueprintDefinition/ReactorComponent" },
+                { "MyObjectBuilder_Component/Thrust", "MyObjectBuilder_BlueprintDefinition/ThrustComponent" },
+                { "MyObjectBuilder_Component/GravityGenerator", "MyObjectBuilder_BlueprintDefinition/GravityGeneratorComponent" },
+                { "MyObjectBuilder_Component/Medical", "MyObjectBuilder_BlueprintDefinition/MedicalComponent" },
+                { "MyObjectBuilder_Component/RadioCommunication", "MyObjectBuilder_BlueprintDefinition/RadioCommunicationComponent" },
+                { "MyObjectBuilder_Component/Detector", "MyObjectBuilder_BlueprintDefinition/DetectorComponent" },
+                { "MyObjectBuilder_Component/Explosives", "MyObjectBuilder_BlueprintDefinition/ExplosivesComponent" },
+                { "MyObjectBuilder_Component/SolarCell", "MyObjectBuilder_BlueprintDefinition/SolarCell" },
+                { "MyObjectBuilder_Component/PowerCell", "MyObjectBuilder_BlueprintDefinition/PowerCell" },
+                { "MyObjectBuilder_Component/Superconductor", "MyObjectBuilder_BlueprintDefinition/Superconductor" },
+                { "MyObjectBuilder_AmmoMagazine/NATO_5p56x45mm", "MyObjectBuilder_BlueprintDefinition/NATO_25x184mmMagazine" },
+                { "MyObjectBuilder_AmmoMagazine/NATO_25x184mm", "MyObjectBuilder_BlueprintDefinition/NATO_5p56x45mmMagazine" },
+                { "MyObjectBuilder_AmmoMagazine/Missile200mm", "MyObjectBuilder_BlueprintDefinition/Missile200mm" },
+                { "MyObjectBuilder_PhysicalGunObject/AngleGrinder1Item", "MyObjectBuilder_BlueprintDefinition/AngleGrinder1"},
+                { "MyObjectBuilder_PhysicalGunObject/AngleGrinder2Item", "MyObjectBuilder_BlueprintDefinition/AngleGrinder2"},
+                { "MyObjectBuilder_PhysicalGunObject/AngleGrinder3Item", "MyObjectBuilder_BlueprintDefinition/AngleGrinder3"},
+                { "MyObjectBuilder_PhysicalGunObject/AngleGrinder4Item", "MyObjectBuilder_BlueprintDefinition/AngleGrinder4"},
+                { "MyObjectBuilder_PhysicalGunObject/HandDrill1Item", "MyObjectBuilder_BlueprintDefinition/HandDrill1"},
+                { "MyObjectBuilder_PhysicalGunObject/HandDrill2Item", "MyObjectBuilder_BlueprintDefinition/HandDrill2"},
+                { "MyObjectBuilder_PhysicalGunObject/HandDrill3Item", "MyObjectBuilder_BlueprintDefinition/HandDrill3"},
+                { "MyObjectBuilder_PhysicalGunObject/HandDrill4Item", "MyObjectBuilder_BlueprintDefinition/HandDrill4"},
+                { "MyObjectBuilder_PhysicalGunObject/Welder1Item", "MyObjectBuilder_BlueprintDefinition/Welder1"},
+                { "MyObjectBuilder_PhysicalGunObject/Welder2Item", "MyObjectBuilder_BlueprintDefinition/Welder2"},
+                { "MyObjectBuilder_PhysicalGunObject/Welder3Item", "MyObjectBuilder_BlueprintDefinition/Welder3"},
+                { "MyObjectBuilder_PhysicalGunObject/Welder4Item", "MyObjectBuilder_BlueprintDefinition/Welder4"},
+
+                { "MyObjectBuilder_PhysicalGunObject/AutomaticRifleItem", "MyObjectBuilder_BlueprintDefinition/AutomaticRifle"},
+                { "MyObjectBuilder_PhysicalGunObject/PreciseAutomaticRifleItem", "MyObjectBuilder_BlueprintDefinition/PreciseAutomaticRifle"},
+                { "MyObjectBuilder_PhysicalGunObject/RapidFireAutomaticRifleItem", "MyObjectBuilder_BlueprintDefinition/RapidFireAutomaticRifle"},
+                { "MyObjectBuilder_PhysicalGunObject/UltimateAutomaticRifleItem", "MyObjectBuilder_BlueprintDefinition/UltimateAutomaticRifle"},
+                { "MyObjectBuilder_GasContainerObject/HydrogenBottle", "MyObjectBuilder_BlueprintDefinition/HydrogenBottle"},
+                { "MyObjectBuilder_OxygenContainerObject/OxygenBottle", "MyObjectBuilder_BlueprintDefinition/OxygenBottle"},
             };
+
+
 
             /*
             TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/AngleGrinder");
@@ -123,71 +156,119 @@ namespace IngameScript
         {
             Echo("Getting Inventory Numbers");
             FindItems();
-
+            Echo("Getting Queues");
+            GetQueuedAmounts();
 
             //Echo("Getting List of Production Blocks");
             List<IMyTerminalBlock> prod = new List<IMyTerminalBlock>();
             GridTerminalSystem.GetBlocksOfType<IMyProductionBlock>(prod);
 
-            bool found = false;
             StringBuilder status; 
             MyDefinitionId blueprint;
-            string blueprintName;
 
             int i;
+            double amt = 0;
+            double amtQueued = 0;
+            //Find automated assemblers
+            List<KeyValuePair<IMyProductionBlock, double>> autoAssemblers = new List<KeyValuePair<IMyProductionBlock, double>>();
+            //List<MyProductionItem> queueItems;
             for (i = 0; i < prod.Count; i++)
             {
                 IMyProductionBlock p = (IMyProductionBlock)prod[i];
                 //Echo("Processing " + p.CustomName);
-                if (p.CustomName.Contains("[Primary]"))
+                //Is producing, on the same construct and is on
+                if (p.CustomName.Contains("[Auto]") && p.IsSameConstructAs(this.Me) && p.Enabled)
                 {
-                    Echo("Processing Inventory");
-                    //Get Queue
-                    List<MyProductionItem> queue = new List<MyProductionItem>();
-                    p.GetQueue(queue);
+                    //queueItems = new List<MyProductionItem>();
+                    //p.GetQueue(queueItems);
+                    //autoAssemblers.Add(new KeyValuePair<IMyProductionBlock, double>(p, queueItems.Count));
+                    autoAssemblers.Add(new KeyValuePair<IMyProductionBlock, double>(p, 0));
 
-                    //Work out what we need
-                    foreach(KeyValuePair<string, int> req in largeList)
-                    {
-                        double amt = 0;
-                        invAmounts.TryGetValue(req.Key, out amt);
-                        status = new StringBuilder(req.Key);
-                        status.Append(" - ");
-                        status.Append(amt);
-                        status.Append("/");
-                        status.Append(req.Value);
-
-                        //Test if we need those!
-                        if (amt < req.Value)
-                        {
-                            //Test Queue for this item, if we dont have any in the queue the lets queue say 100?
-                            blueprintName = TypeToBlueprint[req.Key];
-                            if (!queue.Where(d => d.BlueprintId.ToString() == blueprintName).Any())
-                            {
-                                status.Append(" - Adding");
-                                //Echo(req.Key);
-                                blueprint = MyDefinitionId.Parse(blueprintName);
-                                p.AddQueueItem(blueprint, 100f);
-                            }
-                            else
-                            {
-                                status.Append(" - In List");
-                            }
-                        }
-                        else
-                        {
-                            status.Append(" - Full");
-                        }
-                        Echo(status.ToString());
-                    }
-                    found = true;
-                    break;
                 }
             }
 
-            if (found == false)
+            Echo("Processing Queues/Requirements");
+
+            string displayKey;
+            //Work out what we need
+            if (autoAssemblers.Count > 0)
             {
-                Echo("Could not find assembler.  Please put [Primary] in an assembler name.");
+                double addToQueue = Math.Ceiling(AddAmount / autoAssemblers.Count);
+                Echo("Detected " + autoAssemblers.Count + " Auto Assemblers");
+                Echo("Will queue " + addToQueue + " at a time");
+
+                double chkAmount = 10;
+                bool handtool = false;
+                long counter = 0;
+                foreach (KeyValuePair<string, int> req in largeList)
+                {
+                    //If we're working with hand tools, queue one and queue on 0
+                    if (req.Key.StartsWith("MyObjectBuilder_BlueprintDefinition/AngleGrinder") ||
+                        req.Key.StartsWith("MyObjectBuilder_BlueprintDefinition/HandDrill") ||
+                        req.Key.StartsWith("MyObjectBuilder_BlueprintDefinition/Welder") ||
+                        req.Key.EndsWith("AutomaticRifle") ||
+                        req.Key.EndsWith("Bottle"))
+                    {
+                        handtool = true;
+                        chkAmount = 0;
+                    }
+                    else
+                    {
+                        handtool = false;
+                        chkAmount = autoAssemblers.Count * 3;
+                    }
+
+                    //Get Current Inv
+                    //Echo("Getting Current inv of " + req.Key);
+                    amt = 0;
+                    invAmounts.TryGetValue(req.Key, out amt);
+                    //Get Queued Amount
+                    //Echo("Getting Queued Amt of " + req.Key);
+                    amtQueued = 0;
+                    queuedAmounts.TryGetValue(req.Key, out amtQueued);
+                    //Echo(amt + " - " + amtQueued);
+
+                    displayKey = req.Key.Substring(req.Key.IndexOf('/') + 1);
+                    if (displayKey.Length > 10)
+                        status = new StringBuilder(displayKey.Substring(0, 10));
+                    else
+                        status = new StringBuilder(displayKey);
+                    status.Append(" ");
+                    status.Append(amt);
+                    status.Append("(" + amtQueued + ")");
+                    status.Append("/");
+                    status.Append(req.Value);
+
+                    //Test if we need those!
+                    if (amt > req.Value)
+                        status.Append(" - Full");
+                    else if (amtQueued > chkAmount)
+                        status.Append(" - Queued");
+                    else
+                    {
+                        status.Append(" - Add");
+                        blueprint = MyDefinitionId.Parse(req.Key);
+                        counter = 0;
+                        foreach (var p in autoAssemblers)
+                        {
+                            if (handtool == false)
+                                p.Key.AddQueueItem(blueprint, addToQueue);
+                            else
+                            {
+                                //Queue one and only queue upto the correct amount
+                                if (counter > req.Value || amt > req.Value) break;
+                                p.Key.AddQueueItem(blueprint, 1f);
+                                counter++;
+                                amt++;
+                            }
+                        }
+                    }
+                    Echo(status.ToString());
+                }
+            }
+            else
+            {
+                Echo("Could not find assembler.  Please put [Auto] in an assembler name.");
             }
         }
 
@@ -200,55 +281,100 @@ namespace IngameScript
 
             List<IMyTerminalBlock> invBlocks = new List<IMyTerminalBlock>();
             //GridTerminalSystem.GetBlocks(invBlocks);
-            GridTerminalSystem.GetBlocksOfType<IMyCargoContainer>(invBlocks);
+            GridTerminalSystem.GetBlocks(invBlocks);
 
+            List<MyInventoryItem> items;
+            MyInventoryItem item;
+            IMyInventory inv;
+            IMyTerminalBlock blk;
+            string itemBlu;
+            double amt;
             for (int i = 0; i < invBlocks.Count; i++)
             {
-                IMyTerminalBlock blk = invBlocks[i];
-                for (int iCnt = 0; iCnt < blk.InventoryCount; iCnt++)
+                blk = invBlocks[i];
+                if (blk.IsSameConstructAs(this.Me) && blk.HasInventory)
                 {
-                    //Echo("Processing " + blk.CustomName + " inv " + iCnt);
-                    IMyInventory inv = blk.GetInventory(iCnt);
-                    if (inv != null)
+                    for (int iCnt = 0; iCnt < blk.InventoryCount; iCnt++)
                     {
-
-                        List<MyInventoryItem> items = new List<MyInventoryItem>();
-                        inv.GetItems(items, item =>
+                        //Echo("Processing " + blk.CustomName + " inv " + iCnt);
+                        inv = blk.GetInventory(iCnt);
+                        if (inv != null)
                         {
-                            //Echo("Test " + item.Type.TypeId);
-                            if (item.Type.TypeId == "MyObjectBuilder_Component" || item.Type.TypeId == "MyObjectBuilder_AmmoMagazine")
+                            items = new List<MyInventoryItem>();
+                            inv.GetItems(items);
+                            //Echo("Found " + items.Count);
+                            for (int k = 0; k < items.Count; k++)
                             {
-                                if (largeList.ContainsKey(item.Type.SubtypeId))
+                                item = items[k];
+                                //if (item.Type.TypeId != "MyObjectBuilder_Ingot")
+                                if (item.Type.TypeId == "MyObjectBuilder_PhysicalGunObject" ||
+                                    item.Type.TypeId == "MyObjectBuilder_AmmoMagazine" ||
+                                    item.Type.TypeId == "MyObjectBuilder_Component" ||
+                                    item.Type.TypeId == "MyObjectBuilder_GasContainerObject" ||
+                                    item.Type.TypeId == "MyObjectBuilder_OxygenContainerObject")
                                 {
-                                    return true;
+                                    if (TypeToBlueprint.TryGetValue(item.Type.TypeId + "/" + item.Type.SubtypeId, out itemBlu))
+                                    {
+                                        amt = 0;
+                                        if (invAmounts.TryGetValue(itemBlu, out amt))
+                                        {
+                                            invAmounts[itemBlu] = amt + (double)item.Amount;
+                                        }
+                                        else
+                                        {
+                                            invAmounts.Add(itemBlu, (double)item.Amount);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        //Echo("Err: " + item.Type.TypeId + "/" + item.Type.SubtypeId);
+                                    }
                                 }
-                            }
-                            return false;
-                        });
-                        //Echo("Found " + items.Count);
-                        for (int k = 0; k < items.Count; k++)
-                        {
-                            MyInventoryItem item = items[k];
-                            double amt = 0;
-                            if (invAmounts.TryGetValue(item.Type.SubtypeId, out amt))
-                            {
-                                invAmounts[item.Type.SubtypeId] = amt + (double)item.Amount;
-                            }
-                            else
-                            {
-                                invAmounts.Add(item.Type.SubtypeId, (double)item.Amount);
                             }
                         }
                     }
                 }
             }
             //Echo("Done Getting Items From Grid");
-            /*
-            foreach(KeyValuePair<string, double> p in invAmounts)
+            //foreach(KeyValuePair<string, double> p in invAmounts)
+            //{
+            //    Echo("Inv " + p.Key + " - " + p.Value);
+            //}
+        }
+
+        public void GetQueuedAmounts()
+        {
+            List<IMyTerminalBlock> prod = new List<IMyTerminalBlock>();
+            GridTerminalSystem.GetBlocksOfType<IMyProductionBlock>(prod);
+            queuedAmounts = new Dictionary<string, double>();
+            string blu;
+            int i;
+            List<MyProductionItem> pQ;
+            for (i = 0; i < prod.Count; i++)
             {
-                Echo(p.Key + " - " + p.Value);
+                //Echo("Getting Assembler");
+                IMyProductionBlock p = (IMyProductionBlock)prod[i];
+                //Echo(p.CustomName);
+                if (p.IsSameConstructAs(this.Me) && p.Enabled)
+                {
+                    pQ = new List<MyProductionItem>();
+                    p.GetQueue(pQ);
+                    foreach (var pI in pQ)
+                    {
+                        blu = pI.BlueprintId.ToString();
+                        if (queuedAmounts.ContainsKey(blu))
+                            queuedAmounts[blu] += (double)pI.Amount;
+                        else
+                            queuedAmounts.Add(blu, (double)pI.Amount);
+
+                    }
+                }
             }
-            return counter;
+            /*
+            foreach(var p in queuedAmounts)
+            {
+                Echo("Queued - " + p.Key + " : " + p.Value);
+            }
             */
         }
     }
