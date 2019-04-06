@@ -120,41 +120,13 @@ namespace IngameScript
                 { "MyObjectBuilder_PhysicalGunObject/UltimateAutomaticRifleItem", "MyObjectBuilder_BlueprintDefinition/UltimateAutomaticRifle"},
                 { "MyObjectBuilder_GasContainerObject/HydrogenBottle", "MyObjectBuilder_BlueprintDefinition/HydrogenBottle"},
                 { "MyObjectBuilder_OxygenContainerObject/OxygenBottle", "MyObjectBuilder_BlueprintDefinition/OxygenBottle"},
-            };
 
-
-
-            /*
-            TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/AngleGrinder");
-            TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/AngleGrinder2");
-            TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/AngleGrinder3");
-            TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/AngleGrinder4");
-            TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/HandDrill");
-            TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/HandDrill2");
-            TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/HandDrill3");
-            TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/HandDrill4");
-            TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/Welder");
-            TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/Welder2");
-            TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/Welder3");
-            TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/Welder4");
-            TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/AutomaticRifle");
-            TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/PreciseAutomaticRifle");
-            TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/RapidFireAutomaticRifle");
-            TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/UltimateAutomaticRifle");
-            TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/HydrogenBottle");
-            TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/OxygenBottle");
-            */
                 { "MyObjectBuilder_Component/ShieldComponent", "MyObjectBuilder_BlueprintDefinition/ShieldComponentBP" },
+            };
         }
 
         public void Save()
         {
-            // Called when the program needs to save its state. Use
-            // this method to save your state to the Storage field
-            // or some other means. 
-            // 
-            // This method is optional and can be removed if not
-            // needed.
         }
 
         public void Main(string argument, UpdateType updateSource)
@@ -184,9 +156,6 @@ namespace IngameScript
                 //Is producing, on the same construct and is on
                 if (p.CustomName.Contains("[Auto]") && p.IsSameConstructAs(this.Me) && p.Enabled)
                 {
-                    //queueItems = new List<MyProductionItem>();
-                    //p.GetQueue(queueItems);
-                    //autoAssemblers.Add(new KeyValuePair<IMyProductionBlock, double>(p, queueItems.Count));
                     autoAssemblers.Add(new KeyValuePair<IMyProductionBlock, double>(p, 0));
 
                 }
