@@ -227,8 +227,19 @@ namespace IngameScript
                         counter = 0;
                         foreach (var p in autoAssemblers)
                         {
-                            if (handtool == false)
-                                p.Key.AddQueueItem(blueprint, addToQueue);
+                            if (p.Key.CanUseBlueprint(blueprint))
+                            {
+                                if (handtool == false)
+                                    p.Key.AddQueueItem(blueprint, addToQueue);
+                                else
+                                {
+                                    //Queue one and only queue upto the correct amount
+                                    if (counter > req.Value || amt > req.Value) break;
+                                    p.Key.AddQueueItem(blueprint, 1f);
+                                    counter++;
+                                    amt++;
+                                }
+                            }
                             else
                             {
                                 Echo("Err - Cant Make " + req.Key);
@@ -297,12 +308,14 @@ namespace IngameScript
             for (int i = 0; i < invBlocks.Count; i++)
             {
                 blk = invBlocks[i];
+
                 if (blk.IsSameConstructAs(this.Me) && blk.HasInventory)
                 {
                     if (blk.CustomName.Contains("[Ingot Dump]") && blk.IsSameConstructAs(this.Me) && !blk.GetInventory(0).IsFull)
                     {
                         ingotDump = blk as IMyCargoContainer;
                     }
+
                     for (int iCnt = 0; iCnt < blk.InventoryCount; iCnt++)
                     {
                         //Echo("Processing " + blk.CustomName + " inv " + iCnt);
