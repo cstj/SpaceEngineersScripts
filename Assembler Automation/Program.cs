@@ -23,6 +23,7 @@ namespace IngameScript
         Dictionary<string, double> invAmounts;
         Dictionary<string, double> queuedAmounts;
         Dictionary<string, string> TypeToBlueprint;
+        IMyCargoContainer ingotDump = null;
 
         Double AddAmount =50f;
 
@@ -149,6 +150,7 @@ namespace IngameScript
             //Find automated assemblers
             List<KeyValuePair<IMyProductionBlock, double>> autoAssemblers = new List<KeyValuePair<IMyProductionBlock, double>>();
             //List<MyProductionItem> queueItems;
+            Echo("Cleaning Assemblers");
             for (i = 0; i < prod.Count; i++)
             {
                 IMyProductionBlock p = (IMyProductionBlock)prod[i];
@@ -157,7 +159,7 @@ namespace IngameScript
                 if (p.CustomName.Contains("[Auto]") && p.IsSameConstructAs(this.Me) && p.Enabled)
                 {
                     autoAssemblers.Add(new KeyValuePair<IMyProductionBlock, double>(p, 0));
-
+                    ChkAssemblerClog(p);
                 }
             }
 
@@ -229,11 +231,7 @@ namespace IngameScript
                                 p.Key.AddQueueItem(blueprint, addToQueue);
                             else
                             {
-                                //Queue one and only queue upto the correct amount
-                                if (counter > req.Value || amt > req.Value) break;
-                                p.Key.AddQueueItem(blueprint, 1f);
-                                counter++;
-                                amt++;
+                                Echo("Err - Cant Make " + req.Key);
                             }
                         }
                     }
@@ -243,6 +241,39 @@ namespace IngameScript
             else
             {
                 Echo("Could not find assembler.  Please put [Auto] in an assembler name.");
+            }
+        }
+
+        private void ChkAssemblerClog(IMyProductionBlock p)
+        {
+            if (ingotDump != null)
+            {
+                var inv = p.GetInventory(0);
+                var items = new List<MyInventoryItem>();
+                inv.GetItems(items);
+                int i = -1;
+                VRage.MyFixedPoint maxAmount = 0;
+                while (inv.IsItemAt(++i))
+                { // set MaxAmount based on what it is.
+                    if (items[i].Type.SubtypeId == "Stone") maxAmount = (VRage.MyFixedPoint)10.00;
+                    if (items[i].Type.SubtypeId == "Iron") maxAmount = (VRage.MyFixedPoint)600.00;
+                    if (items[i].Type.SubtypeId == "Nickel") maxAmount = (VRage.MyFixedPoint)70.00;
+                    if (items[i].Type.SubtypeId == "Cobalt") maxAmount = (VRage.MyFixedPoint)220.00;
+                    if (items[i].Type.SubtypeId == "Silicon") maxAmount = (VRage.MyFixedPoint)15.00;
+                    if (items[i].Type.SubtypeId == "Magnesium") maxAmount = (VRage.MyFixedPoint)10;
+                    if (items[i].Type.SubtypeId == "Silver") maxAmount = (VRage.MyFixedPoint)20.00;
+                    if (items[i].Type.SubtypeId == "Gold") maxAmount = (VRage.MyFixedPoint)20.00;
+                    if (items[i].Type.SubtypeId == "Platinum") maxAmount = (VRage.MyFixedPoint)5;
+                    if (items[i].Type.SubtypeId == "Uranium") maxAmount = (VRage.MyFixedPoint)5;
+
+                    maxAmount *= 5; // allow this times as much as needed 
+
+                    if (items[i].Amount > maxAmount)
+                    {
+                        //Echo("Moving " + items[i].Type.SubtypeId);
+                        inv.TransferItemTo(ingotDump.GetInventory(0), i, null, true, items[i].Amount - maxAmount);
+                    }
+                }
             }
         }
 
@@ -268,6 +299,10 @@ namespace IngameScript
                 blk = invBlocks[i];
                 if (blk.IsSameConstructAs(this.Me) && blk.HasInventory)
                 {
+                    if (blk.CustomName.Contains("[Ingot Dump]") && blk.IsSameConstructAs(this.Me) && !blk.GetInventory(0).IsFull)
+                    {
+                        ingotDump = blk as IMyCargoContainer;
+                    }
                     for (int iCnt = 0; iCnt < blk.InventoryCount; iCnt++)
                     {
                         //Echo("Processing " + blk.CustomName + " inv " + iCnt);
