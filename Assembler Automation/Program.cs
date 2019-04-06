@@ -56,6 +56,8 @@ namespace IngameScript
             largeList.Add("MyObjectBuilder_BlueprintDefinition/PowerCell", 200);
             largeList.Add("MyObjectBuilder_BlueprintDefinition/Superconductor", 100);
 
+            largeList.Add("MyObjectBuilder_BlueprintDefinition/ShieldComponentBP", 1000);
+
             //Ammo
             largeList.Add("MyObjectBuilder_BlueprintDefinition/NATO_5p56x45mmMagazine", 100);        //Personal Ammo
             largeList.Add("MyObjectBuilder_BlueprintDefinition/NATO_25x184mmMagazine", 100);         //Ship Ammo
@@ -142,6 +144,7 @@ namespace IngameScript
             TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/HydrogenBottle");
             TypeToBlueprint.Add("", "MyObjectBuilder_BlueprintDefinition/OxygenBottle");
             */
+                { "MyObjectBuilder_Component/ShieldComponent", "MyObjectBuilder_BlueprintDefinition/ShieldComponentBP" },
         }
 
         public void Save()
