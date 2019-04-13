@@ -27,14 +27,20 @@ namespace IngameScript
 
         public struct AutoAsselber
         {
-            public AutoAsselber(IMyProductionBlock myProduction, Dictionary<string, double> queue)
+            public AutoAsselber(IMyProductionBlock myProduction, Dictionary<string, AutoQueueItem> queue)
             {
                 Assembler = myProduction;
                 Queue = queue;
             }
 
             public IMyProductionBlock Assembler { get; set; }
-            public Dictionary<string, double> Queue { get; set; }
+            public Dictionary<string, AutoQueueItem> Queue { get; set; }
+        }
+
+        public struct AutoQueueItem
+        {
+            public double Amount { get; set; }
+            public int QueueIndex { get; set; }
         }
 
         public Program()
@@ -163,7 +169,7 @@ namespace IngameScript
 
             double amountStored = 0;
             double amountQueued = 0;
-            double amountThisQueue = 0;
+            AutoQueueItem amountThisQueue;
 
             status.AppendLine("Processing Queues/Requirements");
             string displayKey;
@@ -198,9 +204,11 @@ namespace IngameScript
                     invAmounts.TryGetValue(req.Key, out amountStored);
                     amountQueued = 0;
                     counter = 0;
+                    string action;
 
                     if (amountStored < req.Value)
                     {
+                        action = "Mak - ";
                         foreach (var autoAsselber in autoAssemblers)
                         {
                             if (!autoAsselber.Queue.TryGetValue(req.Key, out amountThisQueue))
@@ -212,10 +220,8 @@ namespace IngameScript
                                     {
                                         if (autoAsselber.Assembler.CanUseBlueprint(blueprint))
                                         {
-                                            //Get this item from the assembler queue
-                                            amountThisQueue = 0;
-                                            
-                                            amountQueued += amountThisQueue;
+                                            //Get this item from the assembler queue                                            
+                                            amountQueued += amountThisQueue.Amount;
 
                                             counter = 0;
                                             if (handtool == false)
@@ -238,25 +244,39 @@ namespace IngameScript
                             }
                             else
                             {
-                                amountQueued += amountThisQueue;
+                                amountQueued += amountThisQueue.Amount;
                             }
                         }
                     }
-                    
-                    //Add Info to status
+                    else
+                    {
+                        action = "Full - ";
+                        AutoQueueItem value;
+                        foreach (var a in autoAssemblers)
+                        {
+                            if (a.Queue.TryGetValue(req.Key, out value))
+                            {
+                                a.Assembler.RemoveQueueItem(value.QueueIndex, value.Amount);
+                            }
+                        }
+                        amountQueued = 0;
+                    }
+
+                    //Add Info to statu
+                    status.Append(action);
                     displayKey = req.Key.Substring(req.Key.IndexOf('/') + 1);
-                    if (displayKey.Length > 10)
+                    if (displayKey.Length > 15)
                         status.Append(displayKey.Substring(0, 10));
                     else
                         status.Append(displayKey);
                     status.Append(" ");
-                    if (amountStored > 1000)
+                    if (amountStored >= 1000)
                         status.Append(Math.Round(amountStored / 1000, 1) + "k");
                     else
                         status.Append(amountStored);
                     status.Append("(" + amountQueued + ")");
                     status.Append("/");
-                    if (req.Value > 1000)
+                    if (req.Value >= 1000)
                         status.Append(Math.Round(Convert.ToDouble(req.Value) / 1000, 1) + "k");
                     else
                         status.Append(req.Value);
@@ -384,12 +404,13 @@ namespace IngameScript
             List<IMyTerminalBlock> prod = new List<IMyTerminalBlock>();
             GridTerminalSystem.GetBlocksOfType<IMyProductionBlock>(prod);
 
-            Dictionary<string, double> thisQueue;
+            Dictionary<string, AutoQueueItem> thisQueue;
             string blu;
             double piAmount;
             List<AutoAsselber> autoAsselbers = new List<AutoAsselber>();
             List<MyProductionItem> pQ;
 
+            MyProductionItem pI;
             //Go through productions and add auto assemblers to a list with their queue, also create a total queued.
             for (int i = 0; i < prod.Count; i++)
             {
@@ -402,15 +423,16 @@ namespace IngameScript
                         //p.ClearQueue();
                         //Get Production Queue
                         pQ = new List<MyProductionItem>();
-                        thisQueue = new Dictionary<string, double>();
+                        thisQueue = new Dictionary<string, AutoQueueItem>();
                         p.GetQueue(pQ);
-                        foreach (var pI in pQ)
+                        for (int j = 0; j < pQ.Count; j++)
                         {
+                            pI = pQ[j];
                             //Convert to amount and blueprint name
                             blu = pI.BlueprintId.ToString();
                             piAmount = (double)pI.Amount;
 
-                            CreateOrAudition(thisQueue, blu, piAmount);
+                            CreateOrAudition(thisQueue, blu, new AutoQueueItem { Amount = (double)pI.Amount, QueueIndex = j });
                         }
                         //Keep a list of all the auto assemblers
                         autoAsselbers.Add(new AutoAsselber(p, thisQueue));
@@ -420,11 +442,11 @@ namespace IngameScript
             return autoAsselbers;
         }
 
-        private void CreateOrAudition(Dictionary<string, double> pairs, string key, double value)
+        private void CreateOrAudition(Dictionary<string, AutoQueueItem> pairs, string key, AutoQueueItem value)
         {
-            double outval;
+            AutoQueueItem outval;
             if (pairs.TryGetValue(key, out outval))
-                pairs[key] = outval + value;
+                outval.Amount += value.Amount;
             else
                 pairs.Add(key, value);
         }
