@@ -24,10 +24,14 @@ namespace IngameScript
         Dictionary<string, string> TypeToBlueprint;
         IMyCargoContainer ingotDump = null;
         double defaultQueueAmount = 20f;
+        int clogCheckNumber = 10;
+        int clogCheckCurrentCount = 0;
+        private const string PullingFromAssemblers = "PullingFromAssemblers";
+        private const string PullingFromList = "PullingFromList";
 
-        public struct AutoAsselber
+        public struct AssemblerWithQueue
         {
-            public AutoAsselber(IMyProductionBlock myProduction, Dictionary<string, AutoQueueItem> queue)
+            public AssemblerWithQueue(IMyProductionBlock myProduction, Dictionary<string, AutoQueueItem> queue)
             {
                 Assembler = myProduction;
                 Queue = queue;
@@ -49,47 +53,49 @@ namespace IngameScript
             Runtime.UpdateFrequency = UpdateFrequency.Update100;
             //Runtime.UpdateFrequency = UpdateFrequency.Once;
 
-            //Setup List of large blocks.
-            largeList = new Dictionary<string, int>();
-            largeList.Add("MyObjectBuilder_BlueprintDefinition/ConstructionComponent", 20000);
-            largeList.Add("MyObjectBuilder_BlueprintDefinition/MetalGrid", 5000);
-            largeList.Add("MyObjectBuilder_BlueprintDefinition/InteriorPlate", 4000);
-            largeList.Add("MyObjectBuilder_BlueprintDefinition/SteelPlate", 30000);
-            largeList.Add("MyObjectBuilder_BlueprintDefinition/GirderComponent", 500);
-            largeList.Add("MyObjectBuilder_BlueprintDefinition/SmallTube", 4000);
-            largeList.Add("MyObjectBuilder_BlueprintDefinition/LargeTube", 2000);
-            largeList.Add("MyObjectBuilder_BlueprintDefinition/MotorComponent", 2000);
-            largeList.Add("MyObjectBuilder_BlueprintDefinition/Display", 500);
-            largeList.Add("MyObjectBuilder_BlueprintDefinition/BulletproofGlass", 1000);
-            largeList.Add("MyObjectBuilder_BlueprintDefinition/ComputerComponent", 1000);
-            largeList.Add("MyObjectBuilder_BlueprintDefinition/ReactorComponent", 1000);
-            largeList.Add("MyObjectBuilder_BlueprintDefinition/ThrustComponent", 5000);
-            largeList.Add("MyObjectBuilder_BlueprintDefinition/GravityGeneratorComponent", 100);
-            largeList.Add("MyObjectBuilder_BlueprintDefinition/MedicalComponent", 50);
-            largeList.Add("MyObjectBuilder_BlueprintDefinition/RadioCommunicationComponent", 200);
-            largeList.Add("MyObjectBuilder_BlueprintDefinition/DetectorComponent", 1000);
-            largeList.Add("MyObjectBuilder_BlueprintDefinition/ExplosivesComponent", 200);
-            largeList.Add("MyObjectBuilder_BlueprintDefinition/SolarCell", 100);
-            largeList.Add("MyObjectBuilder_BlueprintDefinition/PowerCell", 500);
-            largeList.Add("MyObjectBuilder_BlueprintDefinition/Superconductor", 1000);
 
-            largeList.Add("MyObjectBuilder_BlueprintDefinition/ShieldComponentBP", 1000);
+            //Setup List of components to build
+            largeList = new Dictionary<string, int>();
+            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/ConstructionComponent", 20000);
+            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/MetalGrid", 5000);
+            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/InteriorPlate", 4000);
+            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/SteelPlate", 30000);
+            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/GirderComponent", 500);
+            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/SmallTube", 4000);
+            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/LargeTube", 2000);
+            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/MotorComponent", 2000);
+            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/Display", 500);
+            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/BulletproofGlass", 1000);
+            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/ComputerComponent", 1000);
+            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/ReactorComponent", 1000);
+            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/ThrustComponent", 5000);
+            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/GravityGeneratorComponent", 100);
+            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/MedicalComponent", 50);
+            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/RadioCommunicationComponent", 200);
+            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/DetectorComponent", 1000);
+            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/ExplosivesComponent", 200);
+            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/SolarCell", 100);
+            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/PowerCell", 500);
+            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/Superconductor", 1000);
+
+            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/ShieldComponentBP", 1000);
 
             //Ammo
-            largeList.Add("MyObjectBuilder_BlueprintDefinition/NATO_5p56x45mmMagazine", 100);        //Personal Ammo
-            largeList.Add("MyObjectBuilder_BlueprintDefinition/NATO_25x184mmMagazine", 500);         //Ship Ammo
-            largeList.Add("MyObjectBuilder_BlueprintDefinition/Missile200mm", 300);     //Ship Ammo
+            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/NATO_5p56x45mmMagazine", 100);       //Personal Ammo
+            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/NATO_25x184mmMagazine", 500);        //Ship Ammo
+            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/Missile200mm", 300);                 //Ship Ammo
 
             //Hand Tools
-            largeList.Add("MyObjectBuilder_BlueprintDefinition/AngleGrinder4", 5);
-            largeList.Add("MyObjectBuilder_BlueprintDefinition/HandDrill4", 5);
-            largeList.Add("MyObjectBuilder_BlueprintDefinition/Welder4", 5);
-            largeList.Add("MyObjectBuilder_BlueprintDefinition/UltimateAutomaticRifle", 5);
+            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/AngleGrinder4", 5);
+            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/HandDrill4", 5);
+            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/Welder4", 5);
+            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/UltimateAutomaticRifle", 5);
 
             //Items
-            largeList.Add("MyObjectBuilder_BlueprintDefinition/HydrogenBottle", 5);
-            largeList.Add("MyObjectBuilder_BlueprintDefinition/OxygenBottle", 5);
+            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/HydrogenBottle", 5);
+            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/OxygenBottle", 5);
 
+            //Type to blueprint listings
             TypeToBlueprint = new Dictionary<string, string>
             {
                 { "MyObjectBuilder_Component/Construction", "MyObjectBuilder_BlueprintDefinition/ConstructionComponent" },
@@ -154,25 +160,30 @@ namespace IngameScript
             FindItems();
 
             status.AppendLine("Getting Queues");
-            List<AutoAsselber> autoAssemblers = GetQueuedAmounts();
+            List<AssemblerWithQueue> otherAssemblers;
+            List<AssemblerWithQueue> autoAssemblers = GetQueuedAmounts(out otherAssemblers);
 
             status.AppendLine("Cleaning Assemblers");
-            //Do at same time as getting queues?
-            IMyProductionBlock p;
-            for (int i = 0; i < autoAssemblers.Count; i++)
+
+            //check clog count, if its greater than then lets check clogs, ie. only check every x counter
+            if (clogCheckCurrentCount > clogCheckNumber)
             {
-                p = autoAssemblers[i].Assembler;
-                ChkAssemblerClog(p);
-            }          
-
-            MyDefinitionId blueprint;
-
-            double amountStored = 0;
-            double amountQueued = 0;
-            AutoQueueItem amountThisQueue;
+                //Do at same time as getting queues?
+                IMyProductionBlock p;
+                //Go through assemblers and clear any cloged
+                for (int i = 0; i < autoAssemblers.Count; i++)
+                {
+                    p = autoAssemblers[i].Assembler;
+                    ChkAssemblerClog(p);
+                }
+                clogCheckCurrentCount = 0;
+            }
+            else
+            {
+                clogCheckCurrentCount++;
+            }
 
             status.AppendLine("Processing Queues/Requirements");
-            string displayKey;
 
             //Work out what we need
             if (autoAssemblers.Count > 0)
@@ -180,108 +191,12 @@ namespace IngameScript
                 status.AppendLine("Detected " + autoAssemblers.Count + " Auto Assemblers");
                 status.AppendLine("Will queue " + defaultQueueAmount + " at a time");
 
-                bool handtool = false;
-                long counter = 0;
-
-                foreach (KeyValuePair<string, int> req in largeList)
+                //Process Queue form list, if we queue nothing lets process items from the other assemblers!
+                if (!AutoQueueFromList(status, autoAssemblers))
                 {
-                    //If we're working with hand tools, queue one and queue on 0, use hashset?
-                    if (req.Key.StartsWith("MyObjectBuilder_BlueprintDefinition/AngleGrinder") ||
-                        req.Key.StartsWith("MyObjectBuilder_BlueprintDefinition/HandDrill") ||
-                        req.Key.StartsWith("MyObjectBuilder_BlueprintDefinition/Welder") ||
-                        req.Key.EndsWith("AutomaticRifle") ||
-                        req.Key.EndsWith("Bottle"))
-                    {
-                        handtool = true;
-                    }
-                    else
-                    {
-                        handtool = false;
-                    }
-
-                    //Get Amount in boxes
-                    amountStored = 0;
-                    invAmounts.TryGetValue(req.Key, out amountStored);
-                    amountQueued = 0;
-                    counter = 0;
-                    string action;
-
-                    if (amountStored < req.Value)
-                    {
-                        action = "Mak - ";
-                        foreach (var autoAsselber in autoAssemblers)
-                        {
-                            if (!autoAsselber.Queue.TryGetValue(req.Key, out amountThisQueue))
-                            {
-                                blueprint = MyDefinitionId.Parse(req.Key);
-                                if (blueprint != null)
-                                {
-                                    try
-                                    {
-                                        if (autoAsselber.Assembler.CanUseBlueprint(blueprint))
-                                        {
-                                            //Get this item from the assembler queue                                            
-                                            amountQueued += amountThisQueue.Amount;
-
-                                            counter = 0;
-                                            if (handtool == false)
-                                            {
-                                                autoAsselber.Assembler.AddQueueItem(blueprint, defaultQueueAmount);
-                                                counter += Convert.ToInt32(defaultQueueAmount);
-                                            }
-                                            else
-                                            {
-                                                //Queue one and only queue upto the correct amount
-                                                if (counter > req.Value || amountStored > req.Value) break;
-                                                autoAsselber.Assembler.AddQueueItem(blueprint, 1f);
-                                                counter++;
-                                            }
-                                        }
-                                    }
-                                    catch { }
-                                    amountQueued += counter;
-                                }
-                            }
-                            else
-                            {
-                                amountQueued += amountThisQueue.Amount;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        action = "Full - ";
-                        AutoQueueItem value;
-                        foreach (var a in autoAssemblers)
-                        {
-                            if (a.Queue.TryGetValue(req.Key, out value))
-                            {
-                                a.Assembler.RemoveQueueItem(value.QueueIndex, value.Amount);
-                            }
-                        }
-                        amountQueued = 0;
-                    }
-
-                    //Add Info to statu
-                    status.Append(action);
-                    displayKey = req.Key.Substring(req.Key.IndexOf('/') + 1);
-                    if (displayKey.Length > 15)
-                        status.Append(displayKey.Substring(0, 10));
-                    else
-                        status.Append(displayKey);
-                    status.Append(" ");
-                    if (amountStored >= 1000)
-                        status.Append(Math.Round(amountStored / 1000, 1) + "k");
-                    else
-                        status.Append(amountStored);
-                    status.Append("(" + amountQueued + ")");
-                    status.Append("/");
-                    if (req.Value >= 1000)
-                        status.Append(Math.Round(Convert.ToDouble(req.Value) / 1000, 1) + "k");
-                    else
-                        status.Append(req.Value);
-                    status.AppendLine();
+                    AutoQueueFromOtherAssemblers(status, autoAssemblers, otherAssemblers);
                 }
+
             }
             else
             {
@@ -290,8 +205,211 @@ namespace IngameScript
             Echo(status.ToString());
         }
 
+        private bool AutoQueueFromList(StringBuilder status, List<AssemblerWithQueue> autoAssemblers)
+        {
+            bool hasQueuedItems = false;
+            MyDefinitionId blueprint;
+
+            double amountStored = 0;
+            double amountQueued = 0;
+            AutoQueueItem amountThisQueue;
+            bool handtool = false;
+            long counter = 0;
+
+            foreach (KeyValuePair<string, int> req in largeList)
+            {
+                //If we're working with hand tools, queue one and queue on 0, use hashset?
+                if (req.Key.StartsWith("MyObjectBuilder_BlueprintDefinition/AngleGrinder") ||
+                    req.Key.StartsWith("MyObjectBuilder_BlueprintDefinition/HandDrill") ||
+                    req.Key.StartsWith("MyObjectBuilder_BlueprintDefinition/Welder") ||
+                    req.Key.EndsWith("AutomaticRifle") ||
+                    req.Key.EndsWith("Bottle"))
+                {
+                    handtool = true;
+                }
+                else
+                {
+                    handtool = false;
+                }
+
+                //Get Amount in boxes
+                amountStored = 0;
+                invAmounts.TryGetValue(req.Key, out amountStored);
+                amountQueued = 0;
+                counter = 0;
+                string action;
+
+                if (amountStored < req.Value)
+                {
+                    //Going to try to queue things
+                    action = "Mak - ";
+                    //Process all assemblers
+                    foreach (var autoAsselber in autoAssemblers)
+                    {
+                        //If we are not pulling from other assemblers or we were but have run out lets check it form the list
+                        if (!(autoAsselber.Assembler.CustomData == PullingFromAssemblers && autoAsselber.Queue.Count > 0))
+                        {
+                            autoAsselber.Assembler.CustomData = PullingFromList;
+                            //If this item is not queued in this assembler lets process it and add
+                            if (!autoAsselber.Queue.TryGetValue(req.Key, out amountThisQueue))
+                            {
+                                //Get the blueprint
+                                blueprint = MyDefinitionId.Parse(req.Key);
+                                if (blueprint != null)
+                                {
+                                    try
+                                    {
+                                        //Check we can use the blueprint
+                                        if (autoAsselber.Assembler.CanUseBlueprint(blueprint))
+                                        {
+                                            hasQueuedItems = true;
+                                            amountQueued += amountThisQueue.Amount; //Add the current amount queued to the total amount queued
+                                            counter = 0;
+                                            //If its not a hand tool queue like normal
+                                            if (handtool == false)
+                                            {
+                                                //Add the default amount to the queue
+                                                autoAsselber.Assembler.AddQueueItem(blueprint, defaultQueueAmount);
+                                                //Add the amount we queued to the counter
+                                                counter += Convert.ToInt32(defaultQueueAmount);
+                                            }
+                                            else
+                                            {
+                                                //if its a hand tool queue one and only queue upto the correct amount
+                                                if (counter > req.Value || amountStored > req.Value) break;
+                                                autoAsselber.Assembler.AddQueueItem(blueprint, 1f);
+                                                counter++;
+                                            }
+                                        }
+                                    }
+                                    catch { }
+                                    //Add the amount we just queued to the total queued for this item
+                                    amountQueued += counter;
+                                }
+                            }
+                            else
+                            {
+                                //If we already a queued amount lets just add it total queued amount
+                                amountQueued += amountThisQueue.Amount;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    //If we already have enought go through the assemblers and remove this item form any queues.
+                    action = "Full - ";
+                    AutoQueueItem value;
+                    amountQueued = 0;
+                    foreach (var a in autoAssemblers)
+                    {
+                        if (a.Assembler.CustomData == PullingFromAssemblers)
+                        {
+                            if (a.Queue.TryGetValue(req.Key, out value))
+                            {
+                                a.Assembler.RemoveQueueItem(value.QueueIndex, value.Amount);
+                            }
+                        }
+                        else
+                        {
+                            if (a.Queue.TryGetValue(req.Key, out value))
+                            {
+                                amountQueued += value.Amount;
+                            }
+                        }
+                    }                    
+                }
+
+                //Sort out the display of status
+                string displayKey;
+                //Add Info to statu
+                status.Append(action);
+                displayKey = req.Key.Substring(req.Key.IndexOf('/') + 1);
+                if (displayKey.Length > 15)
+                    status.Append(displayKey.Substring(0, 10));
+                else
+                    status.Append(displayKey);
+                status.Append(" ");
+                if (amountStored >= 1000)
+                    status.Append(Math.Round(amountStored / 1000, 1) + "k");
+                else
+                    status.Append(amountStored);
+                status.Append("(" + amountQueued + ")");
+                status.Append("/");
+                if (req.Value >= 1000)
+                    status.Append(Math.Round(Convert.ToDouble(req.Value) / 1000, 1) + "k");
+                else
+                    status.Append(req.Value);
+                status.AppendLine();
+            }
+            return hasQueuedItems;
+        }
+
+        private void AutoQueueFromOtherAssemblers(StringBuilder status, List<AssemblerWithQueue> autoAssemblers, List<AssemblerWithQueue> otherAssemblers)
+        {
+            status.AppendLine("Nothing Queued - Checking Other Assemblers");
+            MyDefinitionId blueprint;
+            bool gotToEndOfAutos = false;
+            int autoAssNumber = 0;
+            double queueAmount = 0;
+            double addedOfItem = 0;
+            AssemblerWithQueue autoA;
+            var emptyAutoA = autoAssemblers.Where(d => d.Queue.Count == 0).ToList();
+            status.AppendLine("Found " + emptyAutoA.Count + " Auto Assemblers");
+            if (emptyAutoA.Count > 0)
+            {
+                foreach (var o in otherAssemblers)
+                {
+                    foreach (var item in o.Queue)
+                    {
+                        addedOfItem = 0;
+                        var queueItem = item.Value;
+                        blueprint = MyDefinitionId.Parse(item.Key);
+                        while (queueItem.Amount > 0 && gotToEndOfAutos == false)
+                        {
+                            if (queueItem.Amount > defaultQueueAmount)
+                            {
+                                queueAmount = defaultQueueAmount;
+                                queueItem.Amount = queueItem.Amount - defaultQueueAmount;
+                            }
+                            else
+                            {
+                                queueAmount = item.Value.Amount;
+                                queueItem.Amount = 0;
+                            }
+                            if (autoAssNumber < emptyAutoA.Count)
+                            {
+                                autoA = emptyAutoA[autoAssNumber];
+                                if (autoA.Assembler.CustomData == null && autoA.Assembler.CustomData == "")
+                                {
+                                    autoA.Assembler.CustomData = PullingFromAssemblers;
+                                }
+                                //remove form this assembler and add to auto
+                                o.Assembler.RemoveQueueItem(queueItem.QueueIndex, queueAmount);
+                                autoA.Assembler.AddQueueItem(blueprint, queueAmount);
+                                addedOfItem += queueAmount;
+                                //Next assembler
+                                autoAssNumber++;
+                            }
+                            else
+                            {
+                                gotToEndOfAutos = true;
+                            }
+                        }
+                        if (gotToEndOfAutos) break;
+                        status.Append("Added ");
+                        status.Append(addedOfItem);
+                        status.Append(" of ");
+                        status.Append(item.Key);
+                    }
+                    if (gotToEndOfAutos) break;
+                }
+            }
+        }
+
         private void ChkAssemblerClog(IMyProductionBlock p)
         {
+            //check we have an ingot dump
             if (ingotDump != null)
             {
                 var inv = p.GetInventory(0);
@@ -398,8 +516,9 @@ namespace IngameScript
             //}
         }
 
-        public List<AutoAsselber> GetQueuedAmounts()
+        public List<AssemblerWithQueue> GetQueuedAmounts(out List<AssemblerWithQueue> otherAssemblers)
         {
+            otherAssemblers = new List<AssemblerWithQueue>();
             //Get Production Blocks
             List<IMyTerminalBlock> prod = new List<IMyTerminalBlock>();
             GridTerminalSystem.GetBlocksOfType<IMyProductionBlock>(prod);
@@ -407,7 +526,7 @@ namespace IngameScript
             Dictionary<string, AutoQueueItem> thisQueue;
             string blu;
             double piAmount;
-            List<AutoAsselber> autoAsselbers = new List<AutoAsselber>();
+            List<AssemblerWithQueue> autoAsselbers = new List<AssemblerWithQueue>();
             List<MyProductionItem> pQ;
 
             MyProductionItem pI;
@@ -415,27 +534,32 @@ namespace IngameScript
             for (int i = 0; i < prod.Count; i++)
             {
                 IMyProductionBlock p = (IMyProductionBlock)prod[i];
+                //if its auto, is on the same construct / grid, and is enabled
                 if (p.IsSameConstructAs(this.Me) && p.Enabled)
                 {
-                    //if its auto, is on the same construct / grid, and is enabled
-                    if (p.CustomName.Contains("[Auto]") && p.IsSameConstructAs(this.Me) && p.Enabled)
-                    {
-                        //p.ClearQueue();
-                        //Get Production Queue
-                        pQ = new List<MyProductionItem>();
-                        thisQueue = new Dictionary<string, AutoQueueItem>();
-                        p.GetQueue(pQ);
-                        for (int j = 0; j < pQ.Count; j++)
-                        {
-                            pI = pQ[j];
-                            //Convert to amount and blueprint name
-                            blu = pI.BlueprintId.ToString();
-                            piAmount = (double)pI.Amount;
 
-                            CreateOrAudition(thisQueue, blu, new AutoQueueItem { Amount = (double)pI.Amount, QueueIndex = j });
-                        }
+                    //p.ClearQueue();
+                    //Get Production Queue
+                    pQ = new List<MyProductionItem>();
+                    thisQueue = new Dictionary<string, AutoQueueItem>();
+                    p.GetQueue(pQ);
+                    for (int j = 0; j < pQ.Count; j++)
+                    {
+                        pI = pQ[j];
+                        //Convert to amount and blueprint name
+                        blu = pI.BlueprintId.ToString();
+                        piAmount = (double)pI.Amount;
+
+                        CreateOrAudition(thisQueue, blu, new AutoQueueItem { Amount = (double)pI.Amount, QueueIndex = j });
+                    }
+                    if (p.CustomName.Contains("[Auto]"))
+                    {
                         //Keep a list of all the auto assemblers
-                        autoAsselbers.Add(new AutoAsselber(p, thisQueue));
+                        autoAsselbers.Add(new AssemblerWithQueue(p, thisQueue));
+                    }
+                    else
+                    {
+                        otherAssemblers.Add(new AssemblerWithQueue(p, thisQueue));
                     }
                 }
             }
@@ -449,6 +573,32 @@ namespace IngameScript
                 outval.Amount += value.Amount;
             else
                 pairs.Add(key, value);
+        }
+
+        private void AddToRequiredItemsList(ref Dictionary<string, int> itemsList, string bluePrintName, int amount)
+        {
+            MyDefinitionId blueprint;
+            if (MyDefinitionId.TryParse(bluePrintName, out blueprint))
+            {
+                if (blueprint != null)
+                {
+                    List<IMyTerminalBlock> prod = new List<IMyTerminalBlock>();
+                    GridTerminalSystem.GetBlocksOfType<IMyProductionBlock>(prod);
+                    for (int i = 0; i < prod.Count; i++)
+                    {
+                        IMyProductionBlock a = (IMyProductionBlock)prod[i];
+                        try
+                        {
+                            if (blueprint != null && a.CanUseBlueprint(blueprint))
+                            {
+                                itemsList.Add(bluePrintName, amount);
+                                break;
+                            }
+                        }
+                        catch { }
+                    }
+                }
+            }
         }
     }
 }
