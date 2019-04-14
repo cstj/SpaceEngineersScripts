@@ -158,6 +158,10 @@ namespace IngameScript
             StringBuilder status = new StringBuilder();
             status.AppendLine("Getting Inventory Numbers");
             FindItems();
+            if (ingotDump == null)
+            {
+                status.AppendLine("Cannot find Ingot Dump - Create Container with [Ingot Dump] in its name.");
+            }
 
             status.AppendLine("Getting Queues");
             List<AssemblerWithQueue> otherAssemblers;
@@ -355,7 +359,7 @@ namespace IngameScript
             double addedOfItem = 0;
             AssemblerWithQueue autoA;
             var emptyAutoA = autoAssemblers.Where(d => d.Queue.Count == 0).ToList();
-            status.AppendLine("Found " + emptyAutoA.Count + " Auto Assemblers");
+            status.AppendLine("Found " + emptyAutoA.Count + " Auto Assemblers to use.");
             if (emptyAutoA.Count > 0)
             {
                 foreach (var o in otherAssemblers)
