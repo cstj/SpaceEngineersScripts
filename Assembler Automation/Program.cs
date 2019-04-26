@@ -19,6 +19,16 @@ namespace IngameScript
 {
     partial class Program : MyGridProgram
     {
+        /// <summary>
+        /// This Script automatically queues stuff to assemblers.   Change the 'AddToRequiredItemsList' lines to control numbers.
+        /// Put [Auto] in any assembler you want autmatically controled.  It will also start pulling from other assemblers when
+        /// it has finished its queues.  If you create a cargo container with '[Ingot Dump]' in the name the script will control 
+        /// ingots in the assemblers and move extra into that container.
+        /// 
+        /// ***** If you build more assemblers or rename them you MUST recompile the script.  This is to be a little kinder on servers.
+        /// ***** I may change this to do the same for cargo containers unless i find a better way of triggering an update using events/flags (or something).
+        /// </summary>
+
         Dictionary<string, int> largeList;
         Dictionary<string, double> invAmounts;
         Dictionary<string, string> TypeToBlueprint;
@@ -28,6 +38,10 @@ namespace IngameScript
         int clogCheckCurrentCount = 0;
         private const string PullingFromAssemblers = "PullingFromAssemblers";
         private const string PullingFromList = "PullingFromList";
+
+        List<AssemblerWithQueue> otherAssemblers;
+        List<AssemblerWithQueue> autoAssemblers;
+
 
         public struct AssemblerWithQueue
         {
@@ -39,6 +53,45 @@ namespace IngameScript
 
             public IMyProductionBlock Assembler { get; set; }
             public Dictionary<string, AutoQueueItem> Queue { get; set; }
+
+            //Updates the queue for this list
+            public void UpdateQueue(StringBuilder status = null)
+            {
+                Queue.Clear();
+
+                //Get the assemblers queue
+                List<MyProductionItem> pQ = new List<MyProductionItem>();
+                MyProductionItem pI;
+                Assembler.GetQueue(pQ);
+                if (status != null)
+                {
+                    foreach (var p in pQ)
+                        status.Append(p.BlueprintId.SubtypeName + ":" + p.Amount + Environment.NewLine);
+                }
+
+                //Go through assembly queue
+                string blu;
+                double piAmount;
+                for (int j = 0; j < pQ.Count; j++)
+                {
+                    pI = pQ[j];
+                    //Convert to amount and blueprint name
+                    blu = pI.BlueprintId.ToString();
+                    piAmount = (double)pI.Amount;
+
+                    //Add Item to queue amounts
+                    AutoQueueItem outval;
+                    if (Queue.TryGetValue(blu, out outval))
+                    {
+                        outval.Amount += outval.Amount;
+                    }
+                    else
+                    {
+                        outval = new AutoQueueItem { Amount = (double)pI.Amount, QueueIndex = j };
+                        Queue.Add(blu, outval);
+                    }
+                }
+            }
         }
 
         public struct AutoQueueItem
@@ -49,6 +102,8 @@ namespace IngameScript
 
         public Program()
         {
+
+
             //Update every 10 ticks
             Runtime.UpdateFrequency = UpdateFrequency.Update100;
             //Runtime.UpdateFrequency = UpdateFrequency.Once;
@@ -146,6 +201,9 @@ namespace IngameScript
 
                 { "MyObjectBuilder_Component/ShieldComponent", "MyObjectBuilder_BlueprintDefinition/ShieldComponentBP" },
             };
+
+            otherAssemblers = new List<AssemblerWithQueue>();
+            autoAssemblers = GetAssemblers(out otherAssemblers);
         }
 
         public void Save()
@@ -156,55 +214,56 @@ namespace IngameScript
         public void Main(string argument, UpdateType updateSource)
         {
             StringBuilder status = new StringBuilder();
+
+            //Update the queues
+            status.AppendLine("Getting Assembler Queues");
+            GetQueuedAmountsAllAssemblers();
+
+            //Get the inventory
             status.AppendLine("Getting Inventory Numbers");
             FindItems();
-            if (ingotDump == null)
-            {
-                status.AppendLine("Cannot find Ingot Dump - Create Container with [Ingot Dump] in its name.");
-            }
-
-            status.AppendLine("Getting Queues");
-            List<AssemblerWithQueue> otherAssemblers;
-            List<AssemblerWithQueue> autoAssemblers = GetQueuedAmounts(out otherAssemblers);
-
-            status.AppendLine("Cleaning Assemblers");
 
             //check clog count, if its greater than then lets check clogs, ie. only check every x counter
-            if (clogCheckCurrentCount > clogCheckNumber)
-            {
-                //Do at same time as getting queues?
-                IMyProductionBlock p;
-                //Go through assemblers and clear any cloged
-                for (int i = 0; i < autoAssemblers.Count; i++)
-                {
-                    p = autoAssemblers[i].Assembler;
-                    ChkAssemblerClog(p);
-                }
-                clogCheckCurrentCount = 0;
-            }
+            if (ingotDump == null) status.AppendLine("Cannot find Ingot Dump - Create Container with [Ingot Dump] in its name.");
             else
             {
-                clogCheckCurrentCount++;
+                status.AppendLine("Cleaning Assemblers");
+
+                if (clogCheckCurrentCount > clogCheckNumber)
+                {
+                    //Do at same time as getting queues?
+                    IMyProductionBlock p;
+                    //Go through assemblers and clear any cloged
+                    for (int i = 0; i < autoAssemblers.Count; i++)
+                    {
+                        p = autoAssemblers[i].Assembler;
+                        ChkAssemblerClog(p);
+                    }
+                    clogCheckCurrentCount = 0;
+                }
+                else
+                {
+                    clogCheckCurrentCount++;
+                }
             }
 
-            status.AppendLine("Processing Queues/Requirements");
-
+            //Process the queues / requirements
             //Work out what we need
             if (autoAssemblers.Count > 0)
             {
+                status.AppendLine("Processing Queues/Requirements");
+
                 status.AppendLine("Detected " + autoAssemblers.Count + " Auto Assemblers");
-                status.AppendLine("Will queue " + defaultQueueAmount + " at a time");
 
                 //Process Queue form list, if we queue nothing lets process items from the other assemblers!
                 if (!AutoQueueFromList(status, autoAssemblers))
                 {
                     AutoQueueFromOtherAssemblers(status, autoAssemblers, otherAssemblers);
                 }
-
             }
             else
             {
-                status.AppendLine("Could not find assembler.  Please put [Auto] in an assembler name.");
+                status.AppendLine("Could not find assembler.  Please put [Auto] in an assembler name and recompile.");
             }
             Echo(status.ToString());
         }
@@ -245,6 +304,7 @@ namespace IngameScript
 
                 if (amountStored < req.Value)
                 {
+                    hasQueuedItems = true;
                     //Going to try to queue things
                     action = "Mak - ";
                     //Process all assemblers
@@ -266,7 +326,6 @@ namespace IngameScript
                                         //Check we can use the blueprint
                                         if (autoAsselber.Assembler.CanUseBlueprint(blueprint))
                                         {
-                                            hasQueuedItems = true;
                                             amountQueued += amountThisQueue.Amount; //Add the current amount queued to the total amount queued
                                             counter = 0;
                                             //If its not a hand tool queue like normal
@@ -520,20 +579,16 @@ namespace IngameScript
             //}
         }
 
-        public List<AssemblerWithQueue> GetQueuedAmounts(out List<AssemblerWithQueue> otherAssemblers)
+        public List<AssemblerWithQueue> GetAssemblers(out List<AssemblerWithQueue> thisOtherAssemblers)
         {
-            otherAssemblers = new List<AssemblerWithQueue>();
+            //reset the lists
+            List<AssemblerWithQueue> thisAutoAssemblers = new List<AssemblerWithQueue>();
+            thisOtherAssemblers = new List<AssemblerWithQueue>();
+
             //Get Production Blocks
             List<IMyTerminalBlock> prod = new List<IMyTerminalBlock>();
             GridTerminalSystem.GetBlocksOfType<IMyProductionBlock>(prod);
 
-            Dictionary<string, AutoQueueItem> thisQueue;
-            string blu;
-            double piAmount;
-            List<AssemblerWithQueue> autoAsselbers = new List<AssemblerWithQueue>();
-            List<MyProductionItem> pQ;
-
-            MyProductionItem pI;
             //Go through productions and add auto assemblers to a list with their queue, also create a total queued.
             for (int i = 0; i < prod.Count; i++)
             {
@@ -541,42 +596,26 @@ namespace IngameScript
                 //if its auto, is on the same construct / grid, and is enabled
                 if (p.IsSameConstructAs(this.Me) && p.Enabled)
                 {
-
-                    //p.ClearQueue();
-                    //Get Production Queue
-                    pQ = new List<MyProductionItem>();
-                    thisQueue = new Dictionary<string, AutoQueueItem>();
-                    p.GetQueue(pQ);
-                    for (int j = 0; j < pQ.Count; j++)
-                    {
-                        pI = pQ[j];
-                        //Convert to amount and blueprint name
-                        blu = pI.BlueprintId.ToString();
-                        piAmount = (double)pI.Amount;
-
-                        CreateOrAudition(thisQueue, blu, new AutoQueueItem { Amount = (double)pI.Amount, QueueIndex = j });
-                    }
                     if (p.CustomName.Contains("[Auto]"))
                     {
                         //Keep a list of all the auto assemblers
-                        autoAsselbers.Add(new AssemblerWithQueue(p, thisQueue));
+                        thisAutoAssemblers.Add(new AssemblerWithQueue(p, new Dictionary<string, AutoQueueItem>()));
                     }
                     else
                     {
-                        otherAssemblers.Add(new AssemblerWithQueue(p, thisQueue));
+                        //Get the other assemblers
+                        thisOtherAssemblers.Add(new AssemblerWithQueue(p, new Dictionary<string, AutoQueueItem>()));
                     }
                 }
             }
-            return autoAsselbers;
+            return thisAutoAssemblers;
         }
 
-        private void CreateOrAudition(Dictionary<string, AutoQueueItem> pairs, string key, AutoQueueItem value)
+        public void GetQueuedAmountsAllAssemblers()
         {
-            AutoQueueItem outval;
-            if (pairs.TryGetValue(key, out outval))
-                outval.Amount += value.Amount;
-            else
-                pairs.Add(key, value);
+            //go through aut assemblers and update the queues
+            foreach (var a in autoAssemblers) a.UpdateQueue();
+            foreach (var a in otherAssemblers) a.UpdateQueue();
         }
 
         private void AddToRequiredItemsList(ref Dictionary<string, int> itemsList, string bluePrintName, int amount)

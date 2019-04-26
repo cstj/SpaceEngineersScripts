@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Assembler Automation", "Ass
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChuckerAutomation", "ChuckerAutomation\ChuckerAutomation.csproj", "{B19AA2AA-AB34-4CB7-8DE3-E67AFA592617}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rocket Sequence Control", "Rocket Sequence Control\Rocket Sequence Control.csproj", "{89AB8E88-5E04-459D-A266-51C65ECD853B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -16,6 +18,8 @@ Global
 		{4A86B337-5A83-4DC7-AF07-61BFD098070C}.Debug|x64.Build.0 = Debug|x64
 		{B19AA2AA-AB34-4CB7-8DE3-E67AFA592617}.Debug|x64.ActiveCfg = Debug|x64
 		{B19AA2AA-AB34-4CB7-8DE3-E67AFA592617}.Debug|x64.Build.0 = Debug|x64
+		{89AB8E88-5E04-459D-A266-51C65ECD853B}.Debug|x64.ActiveCfg = Debug|x64
+		{89AB8E88-5E04-459D-A266-51C65ECD853B}.Debug|x64.Build.0 = Debug|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
