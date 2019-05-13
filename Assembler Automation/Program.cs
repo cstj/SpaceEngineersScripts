@@ -1,19 +1,11 @@
-﻿using Sandbox.Game.EntityComponents;
-using Sandbox.ModAPI.Ingame;
-using Sandbox.ModAPI.Interfaces;
-using SpaceEngineers.Game.ModAPI.Ingame;
+﻿using Sandbox.ModAPI.Ingame;
 using System.Collections.Generic;
-using System.Collections;
 using System.Linq;
 using System.Text;
 using System;
-using VRage.Collections;
-using VRage.Game.Components;
 using VRage.Game.ModAPI.Ingame;
 using VRage.Game.ModAPI.Ingame.Utilities;
-using VRage.Game.ObjectBuilders.Definitions;
 using VRage.Game;
-using VRageMath;
 
 namespace IngameScript
 {
@@ -28,6 +20,7 @@ namespace IngameScript
         /// ***** If you build more assemblers or rename them you MUST recompile the script.  This is to be a little kinder on servers.
         /// ***** I may change this to do the same for cargo containers unless i find a better way of triggering an update using events/flags (or something).
         /// </summary>
+        MyIni _ini = new MyIni();
 
         Dictionary<string, int> largeList;
         Dictionary<string, double> invAmounts;
@@ -38,6 +31,9 @@ namespace IngameScript
         int clogCheckCurrentCount = 0;
         private const string PullingFromAssemblers = "PullingFromAssemblers";
         private const string PullingFromList = "PullingFromList";
+        IMyTextPanel outputPanel = null;
+        string invLabel = "ItemLimits";
+        string setupLabel = "AASetup";
 
         List<AssemblerWithQueue> otherAssemblers;
         List<AssemblerWithQueue> autoAssemblers;
@@ -102,54 +98,15 @@ namespace IngameScript
 
         public Program()
         {
-
-
-            //Update every 10 ticks
+            //Update every 100 ticks
             Runtime.UpdateFrequency = UpdateFrequency.Update100;
             //Runtime.UpdateFrequency = UpdateFrequency.Once;
+            Setup();
+            
+        }
 
-
-            //Setup List of components to build
-            largeList = new Dictionary<string, int>();
-            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/ConstructionComponent", 20000);
-            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/MetalGrid", 5000);
-            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/InteriorPlate", 4000);
-            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/SteelPlate", 30000);
-            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/GirderComponent", 500);
-            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/SmallTube", 4000);
-            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/LargeTube", 2000);
-            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/MotorComponent", 2000);
-            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/Display", 500);
-            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/BulletproofGlass", 1000);
-            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/ComputerComponent", 1000);
-            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/ReactorComponent", 1000);
-            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/ThrustComponent", 5000);
-            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/GravityGeneratorComponent", 100);
-            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/MedicalComponent", 50);
-            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/RadioCommunicationComponent", 200);
-            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/DetectorComponent", 1000);
-            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/ExplosivesComponent", 200);
-            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/SolarCell", 100);
-            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/PowerCell", 500);
-            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/Superconductor", 1000);
-
-            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/ShieldComponentBP", 1000);
-
-            //Ammo
-            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/NATO_5p56x45mmMagazine", 100);       //Personal Ammo
-            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/NATO_25x184mmMagazine", 500);        //Ship Ammo
-            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/Missile200mm", 300);                 //Ship Ammo
-
-            //Hand Tools
-            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/AngleGrinder4", 5);
-            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/HandDrill4", 5);
-            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/Welder4", 5);
-            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/UltimateAutomaticRifle", 5);
-
-            //Items
-            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/HydrogenBottle", 5);
-            AddToRequiredItemsList(ref largeList, "MyObjectBuilder_BlueprintDefinition/OxygenBottle", 5);
-
+        public void Setup(StringBuilder status = null)
+        {
             //Type to blueprint listings
             TypeToBlueprint = new Dictionary<string, string>
             {
@@ -201,10 +158,103 @@ namespace IngameScript
 
                 { "MyObjectBuilder_Component/ShieldComponent", "MyObjectBuilder_BlueprintDefinition/ShieldComponentBP" },
             };
-
-            otherAssemblers = new List<AssemblerWithQueue>();
-            autoAssemblers = GetAssemblers(out otherAssemblers);
+            
+            Setup2(true);
         }
+
+        public void Setup2(bool force = false, StringBuilder status = null)
+        {
+            string iniString = Me.CustomData;
+            //If we have no custom data lets setup the string
+            MyIniParseResult parseResult;
+            _ini.TryParse(iniString, out parseResult);
+            if (Me.CustomData == null || Me.CustomData == "" || !parseResult.Success)
+            {
+                status?.AppendLine("No Ini - Creating");
+                _ini = new MyIni();
+                _ini.Clear();
+                _ini.Set(setupLabel, "OutputLCD", "AutoAssembler LCD");
+                _ini.Set(invLabel, "ConstructionComponent", 20000);
+                _ini.Set(invLabel, "MetalGrid", 5000);
+                _ini.Set(invLabel, "InteriorPlate", 4000);
+                _ini.Set(invLabel, "SteelPlate", 30000);
+                _ini.Set(invLabel, "GirderComponent", 500);
+                _ini.Set(invLabel, "SmallTube", 4000);
+                _ini.Set(invLabel, "LargeTube", 2000);
+                _ini.Set(invLabel, "MotorComponent", 2000);
+                _ini.Set(invLabel, "Display", 500);
+                _ini.Set(invLabel, "BulletproofGlass", 1000);
+                _ini.Set(invLabel, "ComputerComponent", 1000);
+                _ini.Set(invLabel, "ReactorComponent", 1000);
+                _ini.Set(invLabel, "ThrustComponent", 5000);
+                _ini.Set(invLabel, "GravityGeneratorComponent", 100);
+                _ini.Set(invLabel, "MedicalComponent", 50);
+                _ini.Set(invLabel, "RadioCommunicationComponent", 200);
+                _ini.Set(invLabel, "DetectorComponent", 1000);
+                _ini.Set(invLabel, "ExplosivesComponent", 200);
+                _ini.Set(invLabel, "SolarCell", 200);
+                _ini.Set(invLabel, "PowerCell", 500);
+                _ini.Set(invLabel, "Superconductor", 1000);
+                _ini.Set(invLabel, "ShieldComponentBP", 500);
+                _ini.Set(invLabel, "NATO_5p56x45mmMagazine", 100);    //Personal Ammo
+                _ini.Set(invLabel, "NATO_25x184mmMagazine", 500);     //Ship Ammp
+                _ini.Set(invLabel, "Missile200mm", 200);
+                _ini.Set(invLabel, "AngleGrinder4", 5);
+                _ini.Set(invLabel, "HandDrill4", 5);
+                _ini.Set(invLabel, "Welder4", 5);
+                _ini.Set(invLabel, "UltimateAutomaticRifle", 5);
+                _ini.Set(invLabel, "HydrogenBottle", 5);
+                _ini.Set(invLabel, "OxygenBottle", 5);
+                Me.CustomData = _ini.ToString();
+            }
+
+            //Get the assembler info
+            GetAssemblers();
+
+            status?.Append("Finding LCD Panel - ");
+            List<MyIniKey> keys = new List<MyIniKey>();
+            var lcdName = _ini.Get(setupLabel, "OutputLCD").ToString(null);
+            status?.AppendLine(lcdName ?? "No LCD Name Found");
+            outputPanel = GridTerminalSystem.GetBlockWithName(lcdName) as IMyTextPanel;
+            if (outputPanel == null)
+            {
+                List<IMyTerminalBlock> blocks = new List<IMyTerminalBlock>();
+                GridTerminalSystem.GetBlocks(blocks);
+                for (int i = 0; i < blocks.Count; i++)
+                {
+                    IMyTextPanel outPanel = blocks[i] as IMyTextPanel;
+                    if (outPanel != null && outPanel.CustomName.ToLower() == lcdName.ToLower())
+                    {
+                        outputPanel = outPanel;
+                        break;
+                    }
+                }
+            }
+            if (outputPanel != null)
+            {
+                status?.AppendLine("Found LCD");
+                outputPanel.ContentType = VRage.Game.GUI.TextPanel.ContentType.TEXT_AND_IMAGE;
+                outputPanel.FontSize = 1.0f;
+            }
+            else
+            {
+                status?.AppendLine("Could not find LCD");
+            }
+
+            keys = new List<MyIniKey>();
+            _ini.GetKeys(invLabel, keys);
+            status?.AppendLine($"Got {keys.Count} invListings");
+            largeList = new Dictionary<string, int>();
+            int amount;
+            foreach (var k in keys)
+            {
+                amount = _ini.Get(invLabel, k.Name).ToInt32(0);
+                if (amount > 0) largeList.Add($"MyObjectBuilder_BlueprintDefinition/{k.Name}", amount);
+                status?.AppendLine($"{k.Name} - {amount}");
+
+            }
+        }
+
 
         public void Save()
         {
@@ -214,24 +264,28 @@ namespace IngameScript
         public void Main(string argument, UpdateType updateSource)
         {
             StringBuilder status = new StringBuilder();
-
+            //Setup(status);
             //Update the queues
-            status.AppendLine("Getting Assembler Queues");
+            //status.AppendLine("Getting Assembler Queues");
             GetQueuedAmountsAllAssemblers();
 
             //Get the inventory
-            status.AppendLine("Getting Inventory Numbers");
+            //status.AppendLine("Getting Inventory Numbers");
             FindItems();
-
-            //check clog count, if its greater than then lets check clogs, ie. only check every x counter
-            if (ingotDump == null) status.AppendLine("Cannot find Ingot Dump - Create Container with [Ingot Dump] in its name.");
-            else
+            //status.AppendLine("Refresh #" + clogCheckCurrentCount);
+            //go every half interval
+            if (clogCheckCurrentCount == clogCheckNumber / 2)
             {
-                status.AppendLine("Cleaning Assemblers");
+                Setup2();
+            }
 
-                if (clogCheckCurrentCount > clogCheckNumber)
+            if (ingotDump == null) status.AppendLine("Cannot find Ingot Dump - Create Container with [Ingot Dump] in its name.");
+            //go every full interval
+            if (clogCheckCurrentCount >= clogCheckNumber)
+            {
+                if (ingotDump != null)
                 {
-                    //Do at same time as getting queues?
+                    
                     IMyProductionBlock p;
                     //Go through assemblers and clear any cloged
                     for (int i = 0; i < autoAssemblers.Count; i++)
@@ -239,19 +293,23 @@ namespace IngameScript
                         p = autoAssemblers[i].Assembler;
                         ChkAssemblerClog(p);
                     }
-                    clogCheckCurrentCount = 0;
+                    
                 }
-                else
-                {
-                    clogCheckCurrentCount++;
-                }
+                clogCheckCurrentCount = 0;
             }
+            else
+            {
+                clogCheckCurrentCount++;
+            }
+
+            //check clog count, if its greater than then lets check clogs, ie. only check every x counter
+            
 
             //Process the queues / requirements
             //Work out what we need
             if (autoAssemblers.Count > 0)
             {
-                status.AppendLine("Processing Queues/Requirements");
+                //status.AppendLine("Processing Queues/Requirements");
 
                 status.AppendLine("Detected " + autoAssemblers.Count + " Auto Assemblers");
 
@@ -265,7 +323,10 @@ namespace IngameScript
             {
                 status.AppendLine("Could not find assembler.  Please put [Auto] in an assembler name and recompile.");
             }
-            Echo(status.ToString());
+            if (outputPanel == null)
+                Echo(status.ToString());
+            else
+                outputPanel.WriteText(status);
         }
 
         private bool AutoQueueFromList(StringBuilder status, List<AssemblerWithQueue> autoAssemblers)
@@ -279,6 +340,7 @@ namespace IngameScript
             bool handtool = false;
             long counter = 0;
 
+            bool addedConstructing = false;
             foreach (KeyValuePair<string, int> req in largeList)
             {
                 //If we're working with hand tools, queue one and queue on 0, use hashset?
@@ -300,13 +362,11 @@ namespace IngameScript
                 invAmounts.TryGetValue(req.Key, out amountStored);
                 amountQueued = 0;
                 counter = 0;
-                string action;
 
                 if (amountStored < req.Value)
                 {
                     hasQueuedItems = true;
                     //Going to try to queue things
-                    action = "Mak - ";
                     //Process all assemblers
                     foreach (var autoAsselber in autoAssemblers)
                     {
@@ -357,53 +417,44 @@ namespace IngameScript
                             }
                         }
                     }
-                }
-                else
-                {
-                    //If we already have enought go through the assemblers and remove this item form any queues.
-                    action = "Full - ";
-                    AutoQueueItem value;
-                    amountQueued = 0;
-                    foreach (var a in autoAssemblers)
-                    {
-                        if (a.Assembler.CustomData == PullingFromAssemblers)
-                        {
-                            if (a.Queue.TryGetValue(req.Key, out value))
-                            {
-                                a.Assembler.RemoveQueueItem(value.QueueIndex, value.Amount);
-                            }
-                        }
-                        else
-                        {
-                            if (a.Queue.TryGetValue(req.Key, out value))
-                            {
-                                amountQueued += value.Amount;
-                            }
-                        }
-                    }                    
-                }
+                    //Sort out the display of status
+                    string displayKey;
+                    //Add Info to statu
 
-                //Sort out the display of status
-                string displayKey;
-                //Add Info to statu
-                status.Append(action);
-                displayKey = req.Key.Substring(req.Key.IndexOf('/') + 1);
-                if (displayKey.Length > 15)
-                    status.Append(displayKey.Substring(0, 10));
-                else
-                    status.Append(displayKey);
-                status.Append(" ");
-                if (amountStored >= 1000)
-                    status.Append(Math.Round(amountStored / 1000, 1) + "k");
-                else
-                    status.Append(amountStored);
-                status.Append("(" + amountQueued + ")");
-                status.Append("/");
-                if (req.Value >= 1000)
-                    status.Append(Math.Round(Convert.ToDouble(req.Value) / 1000, 1) + "k");
-                else
-                    status.Append(req.Value);
-                status.AppendLine();
+                    int outputLen;
+
+                    if (addedConstructing == false)
+                    {
+                        status.AppendLine("Making the Following:");
+                        addedConstructing = true;
+                    }
+                    if (outputPanel == null) outputLen = 15;
+                    else outputLen = 100;
+
+                    status.Append("(");
+                    //Amount Stored
+                    if (amountStored >= 1000)
+                        status.Append((Math.Round(amountStored / 1000, 1).ToString() + "k").PadLeft(4, ' '));
+                    else
+                        status.Append(amountStored.ToString().PadLeft(4, ' '));
+                    //Aount Queued
+                    //status.Append("(" + amountQueued + ")");
+
+                    status.Append("/");
+                    //Total Required
+                    if (req.Value >= 1000)
+                        status.Append((Math.Round(Convert.ToDouble(req.Value) / 1000, 1).ToString() + "k").PadLeft(4, ' '));
+                    else
+                        status.Append(req.Value.ToString().PadLeft(4, ' '));
+                    //Name
+                    status.Append(") - ");
+                    displayKey = req.Key.Substring(req.Key.IndexOf('/') + 1);
+                    if (displayKey.Length > outputLen)
+                        status.Append(displayKey.Substring(0, 10));
+                    else
+                        status.Append(displayKey);
+                    status.AppendLine();
+                }
             }
             return hasQueuedItems;
         }
@@ -497,7 +548,6 @@ namespace IngameScript
 
                     if (items[i].Amount > maxAmount)
                     {
-                        //Echo("Moving " + items[i].Type.SubtypeId);
                         inv.TransferItemTo(ingotDump.GetInventory(0), i, null, true, items[i].Amount - maxAmount);
                     }
                 }
@@ -508,12 +558,12 @@ namespace IngameScript
         //Finds Items of types we care about
         public void FindItems()
         {
-            //Echo("Getting Inventory Items From Grid");
             invAmounts = new Dictionary<string, double>();
 
             List<IMyTerminalBlock> invBlocks = new List<IMyTerminalBlock>();
             //GridTerminalSystem.GetBlocks(invBlocks);
             GridTerminalSystem.GetBlocks(invBlocks);
+
 
             List<MyInventoryItem> items;
             MyInventoryItem item;
@@ -521,50 +571,61 @@ namespace IngameScript
             IMyTerminalBlock blk;
             string itemBlu;
             double amt;
+
+            IMyCargoContainer tstCargo;
+            IMyGasGenerator tstGen;
+            IMyGasTank tstTank;
+
             for (int i = 0; i < invBlocks.Count; i++)
             {
                 blk = invBlocks[i];
+                tstCargo = blk as IMyCargoContainer;
+                tstGen = blk as IMyGasGenerator;
+                tstTank = blk as IMyGasTank;
 
-                if (blk.IsSameConstructAs(this.Me) && blk.HasInventory)
+                if (tstCargo != null || tstGen != null || tstTank != null)
                 {
-                    if (blk.CustomName.Contains("[Ingot Dump]") && blk.IsSameConstructAs(this.Me) && !blk.GetInventory(0).IsFull)
+                    if (blk.IsSameConstructAs(this.Me) && blk.HasInventory)
                     {
-                        ingotDump = blk as IMyCargoContainer;
-                    }
-                    for (int iCnt = 0; iCnt < blk.InventoryCount; iCnt++)
-                    {
-                        //Echo("Processing " + blk.CustomName + " inv " + iCnt);
-                        inv = blk.GetInventory(iCnt);
-                        if (inv != null)
+                        if (blk.CustomName.Contains("[Ingot Dump]") && blk.IsSameConstructAs(this.Me) && !blk.GetInventory(0).IsFull)
                         {
-                            items = new List<MyInventoryItem>();
-                            inv.GetItems(items);
-                            //Echo("Found " + items.Count);
-                            for (int k = 0; k < items.Count; k++)
+                            ingotDump = blk as IMyCargoContainer;
+                        }
+
+
+                        for (int iCnt = 0; iCnt < blk.InventoryCount; iCnt++)
+                        {
+                            inv = blk.GetInventory(iCnt);
+                            if (inv != null)
                             {
-                                item = items[k];
-                                //if (item.Type.TypeId != "MyObjectBuilder_Ingot")
-                                if (item.Type.TypeId == "MyObjectBuilder_PhysicalGunObject" ||
-                                    item.Type.TypeId == "MyObjectBuilder_AmmoMagazine" ||
-                                    item.Type.TypeId == "MyObjectBuilder_Component" ||
-                                    item.Type.TypeId == "MyObjectBuilder_GasContainerObject" ||
-                                    item.Type.TypeId == "MyObjectBuilder_OxygenContainerObject")
+                                items = new List<MyInventoryItem>();
+                                inv.GetItems(items);
+                                for (int k = 0; k < items.Count; k++)
                                 {
-                                    if (TypeToBlueprint.TryGetValue(item.Type.TypeId + "/" + item.Type.SubtypeId, out itemBlu))
+                                    item = items[k];
+                                    //if (item.Type.TypeId != "MyObjectBuilder_Ingot")
+                                    if (item.Type.TypeId == "MyObjectBuilder_PhysicalGunObject" ||
+                                        item.Type.TypeId == "MyObjectBuilder_AmmoMagazine" ||
+                                        item.Type.TypeId == "MyObjectBuilder_Component" ||
+                                        item.Type.TypeId == "MyObjectBuilder_GasContainerObject" ||
+                                        item.Type.TypeId == "MyObjectBuilder_OxygenContainerObject")
                                     {
-                                        amt = 0;
-                                        if (invAmounts.TryGetValue(itemBlu, out amt))
+                                        if (TypeToBlueprint.TryGetValue(item.Type.TypeId + "/" + item.Type.SubtypeId, out itemBlu))
                                         {
-                                            invAmounts[itemBlu] = amt + (double)item.Amount;
+                                            amt = 0;
+                                            if (invAmounts.TryGetValue(itemBlu, out amt))
+                                            {
+                                                invAmounts[itemBlu] = amt + (double)item.Amount;
+                                            }
+                                            else
+                                            {
+                                                invAmounts.Add(itemBlu, (double)item.Amount);
+                                            }
                                         }
                                         else
                                         {
-                                            invAmounts.Add(itemBlu, (double)item.Amount);
+                                            //Echo("Err: " + item.Type.TypeId + "/" + item.Type.SubtypeId);
                                         }
-                                    }
-                                    else
-                                    {
-                                        //Echo("Err: " + item.Type.TypeId + "/" + item.Type.SubtypeId);
                                     }
                                 }
                             }
@@ -572,18 +633,13 @@ namespace IngameScript
                     }
                 }
             }
-            //Echo("Done Getting Items From Grid");
-            //foreach(KeyValuePair<string, double> p in invAmounts)
-            //{
-            //    Echo("Inv " + p.Key + " - " + p.Value);
-            //}
         }
 
-        public List<AssemblerWithQueue> GetAssemblers(out List<AssemblerWithQueue> thisOtherAssemblers)
+        public void GetAssemblers()
         {
             //reset the lists
             List<AssemblerWithQueue> thisAutoAssemblers = new List<AssemblerWithQueue>();
-            thisOtherAssemblers = new List<AssemblerWithQueue>();
+            var thisOtherAssemblers = new List<AssemblerWithQueue>();
 
             //Get Production Blocks
             List<IMyTerminalBlock> prod = new List<IMyTerminalBlock>();
@@ -596,7 +652,7 @@ namespace IngameScript
                 //if its auto, is on the same construct / grid, and is enabled
                 if (p.IsSameConstructAs(this.Me) && p.Enabled)
                 {
-                    if (p.CustomName.Contains("[Auto]"))
+                    if (p.CustomName.ToLower().Contains("[auto]"))
                     {
                         //Keep a list of all the auto assemblers
                         thisAutoAssemblers.Add(new AssemblerWithQueue(p, new Dictionary<string, AutoQueueItem>()));
@@ -608,7 +664,21 @@ namespace IngameScript
                     }
                 }
             }
-            return thisAutoAssemblers;
+            if (autoAssemblers == null)
+            {
+                autoAssemblers = new List<AssemblerWithQueue>();
+                otherAssemblers = new List<AssemblerWithQueue>();
+            }
+            foreach (var a in thisAutoAssemblers)
+            {
+                if (!autoAssemblers.Where(b => b.Assembler.EntityId == a.Assembler.EntityId).Any())
+                    autoAssemblers.Add(a);
+            }
+            foreach (var a in thisOtherAssemblers)
+            {
+                if (!thisOtherAssemblers.Where(b => b.Assembler.EntityId == a.Assembler.EntityId).Any())
+                    thisOtherAssemblers.Add(a);
+            }
         }
 
         public void GetQueuedAmountsAllAssemblers()
