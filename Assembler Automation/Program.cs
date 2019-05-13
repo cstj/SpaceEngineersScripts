@@ -12,13 +12,12 @@ namespace IngameScript
     partial class Program : MyGridProgram
     {
         /// <summary>
-        /// This Script automatically queues stuff to assemblers.   Change the 'AddToRequiredItemsList' lines to control numbers.
+        /// This Script automatically queues stuff to assemblers.   To change inventory numbers look in the custom data of the programable block.
         /// Put [Auto] in any assembler you want autmatically controled.  It will also start pulling from other assemblers when
         /// it has finished its queues.  If you create a cargo container with '[Ingot Dump]' in the name the script will control 
         /// ingots in the assemblers and move extra into that container.
         /// 
-        /// ***** If you build more assemblers or rename them you MUST recompile the script.  This is to be a little kinder on servers.
-        /// ***** I may change this to do the same for cargo containers unless i find a better way of triggering an update using events/flags (or something).
+        /// If you create an LCD with the name in the config (or with that in its name) it will output its status to that LCD.
         /// </summary>
         MyIni _ini = new MyIni();
 
