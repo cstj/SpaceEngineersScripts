@@ -571,18 +571,20 @@ namespace IngameScript
             string itemBlu;
             double amt;
 
-            IMyCargoContainer tstCargo;
-            IMyGasGenerator tstGen;
-            IMyGasTank tstTank;
+            //IMyCargoContainer tstCargo;
+            //IMyGasGenerator tstGen;
+            //IMyGasTank tstTank;
+            IMyUserControllableGun gun;
 
             for (int i = 0; i < invBlocks.Count; i++)
             {
                 blk = invBlocks[i];
-                tstCargo = blk as IMyCargoContainer;
-                tstGen = blk as IMyGasGenerator;
-                tstTank = blk as IMyGasTank;
+                //tstCargo = blk as IMyCargoContainer;
+                //tstGen = blk as IMyGasGenerator;
+                //tstTank = blk as IMyGasTank;
+                gun = blk as IMyUserControllableGun;
 
-                if (tstCargo != null || tstGen != null || tstTank != null)
+                if (gun == null)
                 {
                     if (blk.IsSameConstructAs(this.Me) && blk.HasInventory)
                     {
