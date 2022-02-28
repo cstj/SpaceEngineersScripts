@@ -54,7 +54,7 @@ namespace IngameScript
                 startTime = DateTime.Now;
             }
 
-            public double TotalMilliseconds
+            public double TotalSeconds
             {
                 get
                 {
@@ -257,13 +257,13 @@ namespace IngameScript
         Timer descend1Timer = new Timer();
         double descend1TimerLength = 1;
 
+        Timer clearTimer = new Timer();
+        double clearTimerLength = 30;
+
         float startClearingRotation = -1000;
         //Timer clearTimer = new Timer();
         //double clearTimerLength = 3000;
         private bool clearFlipped;
-
-        Timer deadmanTimer = new Timer();
-        double deadmanTimerLength = 180;
 
         string offLightString = prefix + "Light Off";
         IMyInteriorLight offLight;
@@ -510,8 +510,6 @@ namespace IngameScript
 
             if (onLight.Enabled == true)
             {
-                sb.AppendLine("Deadman Timer: " + deadmanTimer.TotalMilliseconds + "/" + deadmanTimerLength);
-
                 sb.Append("State: ").AppendLine(curState.State);
                 sb.AppendLine(extentionPistons.UpdatePistons(curState));
                 sb.AppendLine(StateDrillRotor(true));
@@ -534,66 +532,48 @@ namespace IngameScript
                     sb.AppendLine(StateDrills(false));
                     sb.AppendLine(StateDrillRotor(false));
                     extentionPistons.Descend(0);
-                    SetState(MinerState.Init);
-                }
-
-                if (deadmanTimer.TotalMilliseconds > deadmanTimerLength)
-                {
-                    sb.AppendLine("Deadman Triggered - Back to Init");
-                    SetState(MinerState.Init);
-                    deadmanTimer.Restart();
                 }
                 else
                 {
                     limit = 90;
                     if (curState.State == MinerState.Init.State) {
                         startClearingRotation = -1000;
-                        deadmanTimer.Restart();
                         SetState(MinerState.Init2);
                     }
                     else if (curState.State == MinerState.Init2.State)
                     {
-                        deadmanTimer.Restart();
                         SetState(MinerState.Init3);
                     }
                     else if (curState.State == MinerState.Init3.State)
                     {
-                        deadmanTimer.Restart();
                         SolveState(sb);
                     }
                     else if (curState.State == MinerState.BuildComp.State)
                     {
-                        deadmanTimerLength = 300;
                         BuildComp(sb);
                     }
                     else if (curState.State == MinerState.BuildingExtention.State)
                     {
-                        deadmanTimerLength = 30;
                         BuildExtention(sb);
                     }
                     else if (curState.State == MinerState.Descending.State)
                     {
-                        deadmanTimerLength = 300;
                         Descending(sb);
                     }
                     else if (curState.State == MinerState.Descending2.State)
                     {
-                        deadmanTimerLength = 360;
                         Descending2(sb);
                     }
                     else if (curState.State == MinerState.DrillClearBottom.State)
                     {
-                        deadmanTimerLength = 60;
                         DrillClearBottom(sb);
                     }
                     else if (curState.State == MinerState.Grinding.State)
                     {
-                        deadmanTimerLength = 30;
                         Grinder(sb);
                     }
                     else if (curState.State == MinerState.Retracting.State)
                     {
-                        deadmanTimerLength = 30;
                         Retracting(sb);
                     }
                 }
@@ -607,7 +587,6 @@ namespace IngameScript
                 sb.AppendLine(StateDrillRotor(false));
                 extentionPistons.Descend(0);
                 SetState(MinerState.Init);
-                deadmanTimer.Restart();
             }
             Echo(sb.ToString());
             output.WriteText(sb.ToString());
@@ -788,14 +767,14 @@ namespace IngameScript
             else
             {
                 //If we've been building for longer than required length
-                if (buildTimer.TotalMilliseconds > builtTimerLength)
+                if (buildTimer.TotalSeconds > builtTimerLength)
                 {
                     buildTimer.Running = false;
                     curState = MinerState.Descending;
                 }
                 else
                 {
-                    sb.AppendLine("Timer: " + buildTimer.TotalMilliseconds + "/" + builtTimerLength);
+                    sb.AppendLine("Timer: " + buildTimer.TotalSeconds + "/" + builtTimerLength);
                 }
             }
         }
@@ -816,7 +795,7 @@ namespace IngameScript
             else
             {
                 //Has the pistons stopped and the holder is connected and we have crunched onto the main leg.
-                if (extentionPistons.CurrentLength > DescendLength2Min && extentionPistons.CurrentLength < DescendLength2Max && extentionPistons.MovementState == PistonMovementState.Static && descend1Timer.TotalMilliseconds > descend1TimerLength)
+                if (extentionPistons.CurrentLength > DescendLength2Min && extentionPistons.CurrentLength < DescendLength2Max && extentionPistons.MovementState == PistonMovementState.Static && descend1Timer.TotalSeconds > descend1TimerLength)
                 {
                     descend1Timer.Running = false;
                     SetState(MinerState.Descending2);
@@ -827,7 +806,7 @@ namespace IngameScript
                 }
                 else
                 {
-                    sb.AppendLine("Timer: " + descend1Timer.TotalMilliseconds + "/" + descend1TimerLength);
+                    sb.AppendLine("Timer: " + descend1Timer.TotalSeconds + "/" + descend1TimerLength);
                 }
             }
         }
@@ -859,12 +838,12 @@ namespace IngameScript
             sb.AppendLine(StateMergeHolder(true));
             sb.AppendLine(StateGrinder(false));
             StateProjector(false);
-
             sb.AppendLine("Waiting for Rototaion of Drill To Clear Bottom of Pit");
+            sb.AppendLine("Timer: " + clearTimer.TotalSeconds + " / " + clearTimerLength);
             if (startClearingRotation == -1000)
             {
                 startClearingRotation = drillRotor.Angle;
-                //clearTimer.Restart();
+                clearTimer.Restart();
                 clearFlipped = false;
             }
             sb.AppendLine("Start Angle: " + startClearingRotation);
@@ -887,10 +866,10 @@ namespace IngameScript
             percent = Math.Round((moved / (Math.PI * 2)) * 100, 0);
 
             sb.AppendLine("Rotor Angle: " + Math.Round(drillRotor.Angle, 2) + " (" + Math.Round(moved, 2) + " | " + percent + "%)");
-            if (deadmanTimer.TotalMilliseconds > 10 && moved >= (2 * Math.PI))
-            //if (moved >= (2 * Math.PI))
+            if (clearTimer.TotalSeconds > clearTimerLength || moved >= (2 * Math.PI))
             {
                 startClearingRotation = -1000;
+                clearTimer.Running = false;
                 SetState(MinerState.Grinding);
             }
         }
@@ -904,12 +883,12 @@ namespace IngameScript
                 sb.AppendLine(StateMergeHolder(true));
                 sb.AppendLine(StateGrinder(true));
                 StateProjector(false);
-                sb.AppendLine("Timer: " + grindTimer.TotalMilliseconds + "/" + grindTimerLength);
+                sb.AppendLine("Timer: " + grindTimer.TotalSeconds + "/" + grindTimerLength);
                 sb.AppendLine("Grinding . . . ");
 
                 //Start timer
                 if (grindTimer.Running == false) grindTimer.Restart();
-                if (grindTimer.TotalMilliseconds > grindTimerLength)
+                if (grindTimer.TotalSeconds > grindTimerLength)
                 {
                     grindTimer.Running = false;
                     SetState(MinerState.Retracting);
