@@ -27,7 +27,7 @@ namespace IngameScript
             MainType = "Ingot";
             MainSubType = "Stone";
             maxAmount = 10000;
-            Runtime.UpdateFrequency = UpdateFrequency.Update10;
+            Runtime.UpdateFrequency = UpdateFrequency.Update100;
         }
 
         public void Save()
