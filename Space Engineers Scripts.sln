@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.421
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.32002.261
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Assembler Automation", "Assembler Automation\Assembler Automation.csproj", "{4A86B337-5A83-4DC7-AF07-61BFD098070C}"
 EndProject
@@ -9,9 +9,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChuckerAutomation", "Chucke
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rocket Sequence Control", "Rocket Sequence Control\Rocket Sequence Control.csproj", "{89AB8E88-5E04-459D-A266-51C65ECD853B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RefinaryControl", "RefinaryControl\RefinaryControl.csproj", "{BD08865A-6854-4633-8012-7B675D73B05E}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Inventory Trigger", "InventoryManagmenetTrigger\Inventory Trigger.csproj", "{4BE01FF5-08A0-4BAF-987B-1D93113BFA59}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Inf Miner Script", "Inf Miner Script\Inf Miner Script.csproj", "{FD330A8F-04BF-478C-B4E4-5F5A854608B1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -24,10 +24,10 @@ Global
 		{B19AA2AA-AB34-4CB7-8DE3-E67AFA592617}.Debug|x64.Build.0 = Debug|x64
 		{89AB8E88-5E04-459D-A266-51C65ECD853B}.Debug|x64.ActiveCfg = Debug|x64
 		{89AB8E88-5E04-459D-A266-51C65ECD853B}.Debug|x64.Build.0 = Debug|x64
-		{BD08865A-6854-4633-8012-7B675D73B05E}.Debug|x64.ActiveCfg = Debug|x64
-		{BD08865A-6854-4633-8012-7B675D73B05E}.Debug|x64.Build.0 = Debug|x64
 		{4BE01FF5-08A0-4BAF-987B-1D93113BFA59}.Debug|x64.ActiveCfg = Debug|x64
 		{4BE01FF5-08A0-4BAF-987B-1D93113BFA59}.Debug|x64.Build.0 = Debug|x64
+		{FD330A8F-04BF-478C-B4E4-5F5A854608B1}.Debug|x64.ActiveCfg = Debug|x64
+		{FD330A8F-04BF-478C-B4E4-5F5A854608B1}.Debug|x64.Build.0 = Debug|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
