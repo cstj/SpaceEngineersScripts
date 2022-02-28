@@ -35,6 +35,7 @@ namespace IngameScript
 
         Dictionary<string, string> TypeToBlueprint;
         Dictionary<string, int> TypeToRequired;
+        double limit = 90;
 
         public class Timer
         {
@@ -62,17 +63,35 @@ namespace IngameScript
             }
         }
 
-        public static class MinerState
+        public class MinerState
         {
-            public const string Init = "Init";
-            public const string Init2 = "Init 2";
-            public const string Init3 = "Init 3";
-            public const string BuildingExtention = "Building Extention";
-            public const string Descending = "Descending";
-            public const string Descending2 = "Descending 2";
-            public const string DrillClearBottom = "Drill Clear Bottom";
-            public const string Grinding = "Grinding";
-            public const string Retracting = "Retracting";
+            public static MinerState Init => new MinerState { Order = 0, State = "Init" };
+            public static MinerState Init2 => new MinerState { Order = 0, State = "Init 2" };
+            public static MinerState Init3 => new MinerState { Order = 0, State = "Init 3" };
+            public static MinerState BuildComp => new MinerState { Order = 0, State = "Building Components" };
+            public static MinerState BuildingExtention => new MinerState { Order = 0, State = "Building Extention" };
+            public static MinerState Descending => new MinerState { Order = 0, State = "Descending" };
+            public static MinerState Descending2 => new MinerState { Order = 0, State = "Descending 2" };
+            public static MinerState DrillClearBottom => new MinerState { Order = 0, State = "Drill Clear Bottom" };
+            public static MinerState Grinding => new MinerState { Order = 0, State = "Grinding" };
+            public static MinerState Retracting => new MinerState { Order = 0, State = "Retracting" };
+
+            public static Dictionary<string, MinerState> AllStates = new Dictionary<string, MinerState>
+            {
+                { Init.State, Init },
+                { Init2.State, Init2 },
+                { Init3.State, Init3 },
+                { BuildComp.State, BuildComp },
+                { BuildingExtention.State, BuildingExtention },
+                { Descending.State, Descending },
+                { Descending2.State, Descending2 },
+                { DrillClearBottom.State, DrillClearBottom },
+                { Grinding.State, Grinding },
+                { Retracting.State, Retracting },
+            };
+
+            public string State { get; set; }
+            public int Order { get; set; }
         }
 
         public enum PistonMovementState
@@ -161,10 +180,9 @@ namespace IngameScript
                 }
             }
 
-            public string UpdatePistons(string curState)
+            public string UpdatePistons(MinerState curState)
             {
                 StringBuilder sb = new StringBuilder();
-                sb.AppendLine("Updating Pistons: ");
                 PistonAndState p;
                 for (int i = 0; i < Pistons.Count; i++)
                 {
@@ -172,20 +190,19 @@ namespace IngameScript
                     // less than x?
                     if (Math.Abs(p.LastPosition - p.Piston.CurrentPosition) > MIN_FLOAT_COMP)
                     {
-                        sb.AppendLine("Piston " + i + ": Moving - " + p.Piston.CurrentPosition);
                         p.MovementState = PistonMovementState.Moving;
                         p.LastPosition = p.Piston.CurrentPosition;
                     }
                     //If we're not in init, we must be stoped as there is almost no change
-                    else if (curState != MinerState.Init)
+                    else if (curState.State != MinerState.Init.State)
                     {
-                        sb.AppendLine("Piston " + i + ": Static - " + p.Piston.CurrentPosition);
                         p.MovementState = PistonMovementState.Static;
                         p.LastPosition = p.Piston.CurrentPosition;
                     }
-                    else sb.AppendLine("Piston " + i + ": Init - " + p.Piston.CurrentPosition);
                 }
-                
+                if (Pistons[0].MovementState == PistonMovementState.Static) sb.AppendLine("Pistions: Static - " + CurrentLength);
+                else sb.AppendLine("Pistions: Moving - " + CurrentLength);
+
                 return sb.ToString();
             }
 
@@ -210,7 +227,7 @@ namespace IngameScript
 
         IMyTextSurface output;
 
-        string curState = "";
+        MinerState curState = MinerState.Init;
         static string prefix = "Inf Miner ";
 
         string extentionPistonsString = prefix + "Extention Pistons";
@@ -257,20 +274,20 @@ namespace IngameScript
         IMyProjector projector;
 
         string invCompString = prefix + "Cargo Comp";
-        IMyCargoContainer cargoComp;
         IMyInventory invComp;
 
         string invStoneString = prefix + "Cargo Stone";
-        IMyCargoContainer cargoStone;
         IMyInventory invStone;
 
         string cargoIngotsString = prefix + "Cargo Ingots";
-        IMyCargoContainer cargoIngots;
         IMyInventory invIngots;
 
         string assemblerString = prefix + "Assembler";
         IMyAssembler assembler;
         IMyInventory invAssembler;
+
+        string minerStateLightsString = prefix + "Light State ";
+        Dictionary<string, IMyInteriorLight> minerStateLights = new Dictionary<string, IMyInteriorLight>();
 
         public Program()
         {
@@ -291,11 +308,9 @@ namespace IngameScript
                 { "MyObjectBuilder_BlueprintDefinition/InteriorPlate", 22*1 },
                 { "MyObjectBuilder_BlueprintDefinition/SteelPlate", 11*1 },
                 { "MyObjectBuilder_BlueprintDefinition/SmallTube", 3*1 },
-                { "MyObjectBuilder_BlueprintDefinition/MotorComponent", 16*2 },
+                { "MyObjectBuilder_BlueprintDefinition/MotorComponent", 16*1 },
                 { "MyObjectBuilder_BlueprintDefinition/ComputerComponent", 3*1 },
             };
-            
-            SetState(MinerState.Init);
            
             //Get the Refrences to things
             List<IMyTerminalBlock> termBlocks = new List<IMyTerminalBlock>();
@@ -342,23 +357,34 @@ namespace IngameScript
                 }
                 else if (b.CustomName == invCompString)
                 {
-                    cargoComp = b as IMyCargoContainer;
                     invComp = b.GetInventory(0) as IMyInventory;
                     sb.AppendLine("Found Cargo Comp");
                 }
                 else if (b.CustomName == invStoneString)
                 {
-                    cargoStone = b as IMyCargoContainer;
                     invStone = b.GetInventory(0) as IMyInventory;
                     sb.AppendLine("Found Cargo Stone");
                 }
                 else if (b.CustomName == cargoIngotsString)
                 {
-                    cargoIngots = b as IMyCargoContainer;
                     invIngots = b.GetInventory(0) as IMyInventory;
                     sb.AppendLine("Found Cargo Ingots");
                 }
+                //State LIghts
+                else
+                {
+                    foreach(var l in MinerState.AllStates.Values)
+                    {
+                        if (b.CustomName == minerStateLightsString + l.State)
+                        {
+                            sb.Append("Found State Light " + l.State);
+                            minerStateLights.Add(l.State, b as IMyInteriorLight);
+                        }
+                    }
+                }
             }
+
+            sb.AppendLine();
 
             List<IMyBlockGroup> gridGroups = new List<IMyBlockGroup>();
             GridTerminalSystem.GetBlockGroups(gridGroups);
@@ -447,6 +473,11 @@ namespace IngameScript
                 envTest = false;
                 sb.AppendLine("Cargo Ingots not Found");
             }
+            if (minerStateLights.Count != MinerState.AllStates.Count - 3)
+            {
+                envTest = false;
+                sb.AppendLine("State Light Missing");
+            }
 
             //If env is sane, set to rerun
             if (envTest)
@@ -475,99 +506,95 @@ namespace IngameScript
             StringBuilder sb = new StringBuilder();
             SortCargo();
             sb.AppendLine("Running Main " + DateTime.Now);
-            
+
 
             if (onLight.Enabled == true)
             {
                 sb.AppendLine("Deadman Timer: " + deadmanTimer.TotalMilliseconds + "/" + deadmanTimerLength);
-                
-                sb.Append("State: ").AppendLine(curState);
+
+                sb.Append("State: ").AppendLine(curState.State);
                 sb.AppendLine(extentionPistons.UpdatePistons(curState));
                 sb.AppendLine(StateDrillRotor(true));
                 StateDrills(true);
 
-                //Check Deadman!
+                var perComp = Math.Round((((double)invComp.CurrentVolume) / ((double)invComp.MaxVolume)) * 100, 0);
+                var perStone = Math.Round((((double)invStone.CurrentVolume) / ((double)invStone.MaxVolume)) * 100, 0);
+                var perIngot = Math.Round((((double)invIngots.CurrentVolume) / ((double)invIngots.MaxVolume)) * 100, 0);
+                
+                if (perComp > limit
+                    || (perStone > limit)
+                    || (perIngot > limit))
+                {
+                    limit = 50;
+                    if (invIngots.IsFull) sb.AppendLine("Ingot Cargo Full - Pausing - " + perIngot);
+                    if (invComp.IsFull) sb.AppendLine("Components Cargo Full - Pausing - " + perComp);
+                    if (invStone.IsFull) sb.AppendLine("Stone Cargo Full - Pausing - " + perStone);
+                    sb.AppendLine(StateWelders(false));
+                    sb.AppendLine(StateGrinder(false));
+                    sb.AppendLine(StateDrills(false));
+                    sb.AppendLine(StateDrillRotor(false));
+                    extentionPistons.Descend(0);
+                    SetState(MinerState.Init);
+                }
+
                 if (deadmanTimer.TotalMilliseconds > deadmanTimerLength)
                 {
                     sb.AppendLine("Deadman Triggered - Back to Init");
                     SetState(MinerState.Init);
+                    deadmanTimer.Restart();
                 }
                 else
                 {
-                    var perComp = Math.Round((((double)invComp.CurrentVolume) / ((double)invComp.MaxVolume)) * 100,0);
-                    var perStone = Math.Round((((double)invStone.CurrentVolume) / ((double)invStone.MaxVolume)) * 100,0);
-                    var perIngot = Math.Round((((double)invIngots.CurrentVolume) / ((double)invIngots.MaxVolume)) * 100,0);
-                    if (perComp > 80
-                        || (perStone > 80)
-                        || (perIngot > 80))
-                    {
-                        if (invIngots.IsFull) sb.AppendLine("Ingot Cargo Full - Pausing - " + perIngot);
-                        if (invComp.IsFull) sb.AppendLine("Components Cargo Full - Pausing - " + perComp);
-                        if (invStone.IsFull) sb.AppendLine("Stone Cargo Full - Pausing - " + perStone);
-                        //Pause Drills, welders and pistons
-                        sb.AppendLine(StateWelders(false));
-                        sb.AppendLine(StateGrinder(false));
-                        sb.AppendLine(StateDrills(false));
-                        sb.AppendLine(StateDrillRotor(false));
-                        extentionPistons.Descend(0);
-                        SetState(MinerState.Init);
+                    limit = 90;
+                    if (curState.State == MinerState.Init.State) {
+                        startClearingRotation = -1000;
+                        deadmanTimer.Restart();
+                        SetState(MinerState.Init2);
                     }
-                    else
+                    else if (curState.State == MinerState.Init2.State)
                     {
-
-                        switch (curState)
-                        {
-                            //Init States, lets just wait a bit to get piston states
-                            case MinerState.Init:
-                                startClearingRotation = -1000;
-                                SetState(MinerState.Init2);
-                                break;
-
-                            case MinerState.Init2:
-                                SetState(MinerState.Init3);
-                                break;
-
-                            //Calculate where we are in our process!
-                            case MinerState.Init3:
-                                SolveState(sb);
-                                break;
-
-                            //Actual States!
-                            //1
-                            case MinerState.BuildingExtention:
-                                deadmanTimerLength = 30;
-                                BuildExtention(sb);
-                                break;
-
-                            //2
-                            case MinerState.Descending:
-                                deadmanTimerLength = 300;
-                                Descending(sb);
-                                break;
-                            //3
-                            case MinerState.Descending2:
-                                deadmanTimerLength = 300;
-                                Descending2(sb);
-                                break;
-
-                            //4
-                            case MinerState.DrillClearBottom:
-                                deadmanTimerLength = 60;
-                                DrillClearBottom(sb);
-                                break;
-
-                            //5
-                            case MinerState.Grinding:
-                                deadmanTimerLength = 30;
-                                Grinder(sb);
-                                break;
-
-                            //6
-                            case MinerState.Retracting:
-                                deadmanTimerLength = 30;
-                                Retracting(sb);
-                                break;
-                        }
+                        deadmanTimer.Restart();
+                        SetState(MinerState.Init3);
+                    }
+                    else if (curState.State == MinerState.Init3.State)
+                    {
+                        deadmanTimer.Restart();
+                        SolveState(sb);
+                    }
+                    else if (curState.State == MinerState.BuildComp.State)
+                    {
+                        deadmanTimerLength = 300;
+                        BuildComp(sb);
+                    }
+                    else if (curState.State == MinerState.BuildingExtention.State)
+                    {
+                        deadmanTimerLength = 30;
+                        BuildExtention(sb);
+                    }
+                    else if (curState.State == MinerState.Descending.State)
+                    {
+                        deadmanTimerLength = 300;
+                        Descending(sb);
+                    }
+                    else if (curState.State == MinerState.Descending2.State)
+                    {
+                        deadmanTimerLength = 360;
+                        Descending2(sb);
+                    }
+                    else if (curState.State == MinerState.DrillClearBottom.State)
+                    {
+                        deadmanTimerLength = 60;
+                        DrillClearBottom(sb);
+                    }
+                    else if (curState.State == MinerState.Grinding.State)
+                    {
+                        deadmanTimerLength = 30;
+                        Grinder(sb);
+                    }
+                    else if (curState.State == MinerState.Retracting.State)
+                    {
+                        deadmanTimerLength = 30;
+                        Retracting(sb);
                     }
                 }
             }
@@ -580,23 +607,19 @@ namespace IngameScript
                 sb.AppendLine(StateDrillRotor(false));
                 extentionPistons.Descend(0);
                 SetState(MinerState.Init);
+                deadmanTimer.Restart();
             }
             Echo(sb.ToString());
             output.WriteText(sb.ToString());
             
         }
 
-        private bool BuildRequired()
+        private bool HaveRequiredComp(StringBuilder sb)
         {
             MyInventoryItem i;
             List<MyInventoryItem> items = new List<MyInventoryItem>();
             invComp.GetItems(items);
             Dictionary<string, int> itemsCol = new Dictionary<string, int>();
-            MyDefinitionId blueprint;
-            List<MyProductionItem> queue = new List<MyProductionItem>();
-            assembler.GetQueue(queue);
-            Dictionary<string, int> assQueue = SortQueue(queue);
-            string bptString;
             int amount;
             string type;
             //Get amounts
@@ -604,38 +627,45 @@ namespace IngameScript
             {
                 i = items[k];
                 amount = 0;
-                Echo(i.ToString());
                 type = TypeToBlueprint[i.Type.ToString()];
-                Echo(type);
                 itemsCol.TryGetValue(type, out amount);
                 amount += (int)i.Amount;
-                Echo(i.ToString() + " -- " + type + " -- " + amount);
                 itemsCol[type] = amount;
             }
 
             //Queue whats needed
+            MyDefinitionId blueprint;
+            List<MyProductionItem> queue = new List<MyProductionItem>();
+            assembler.GetQueue(queue);
+            Dictionary<string, int> assQueue = SortQueue(queue);
+            string bptString;
             int need;
-            bool needMore = false;
+            int queuedAmt = 0;
+            bool haveComp = true;
             foreach(var d in TypeToRequired)
             {
                 bptString = d.Key;
                 amount = 0;
-                //How many we need - amount we have
-                itemsCol.TryGetValue(d.Key, out amount);
-                Echo("We have : " + amount + " (" + d.Key + ")");
-                need = d.Value - amount;
-                amount = 0;
-                //Take away any more we have queued.
-                assQueue.TryGetValue(bptString, out amount);
-                need = need - amount;
+                itemsCol.TryGetValue(d.Key, out amount);        //Get Amount we have
+                queuedAmt = 0;
+                assQueue.TryGetValue(bptString, out queuedAmt);    //Take away any more we have queued.
+                need = d.Value - amount - queuedAmt;
                 if (need > 0)
                 {
-                    needMore = true;
+                    haveComp = false;
                     blueprint = MyDefinitionId.Parse(bptString);
                     assembler.AddQueueItem(blueprint, Convert.ToDecimal(need));
+                    sb.Append(d.Key.Substring(d.Key.IndexOf("/") + 1) + ": ");
+                    sb.AppendLine("N: " + need + "(queued)");
+                }
+                else if (queuedAmt > 0)
+                {
+                    haveComp = false;
+                    sb.Append(d.Key.Substring(d.Key.IndexOf("/") + 1) + ": ");
+                    sb.AppendLine("N: " + queuedAmt);
                 }
             }
-            return needMore;
+            return haveComp;
         }
 
         private Dictionary<string, int> SortQueue(List<MyProductionItem> queue)
@@ -727,6 +757,25 @@ namespace IngameScript
             else return "Grinder: Disabled";
         }
 
+        private void BuildComp(StringBuilder sb)
+        {
+            sb.AppendLine("Building Extention");
+            sb.AppendLine(StateWelders(true));
+            sb.AppendLine(StateMergeHolder(true));
+            sb.AppendLine(StateGrinder(false));
+            StateProjector(true);
+
+            if (!HaveRequiredComp(sb))
+            {
+                sb.AppendLine("Waiting for Required Components . . .");
+            }
+            else
+            {
+                buildTimer.Running = false;
+                SetState(MinerState.BuildingExtention);
+                sb.AppendLine("Moving To Buildign Exten");
+            }
+        }
         private void BuildExtention(StringBuilder sb)
         {
             sb.AppendLine("Building Extention");
@@ -734,21 +783,8 @@ namespace IngameScript
             sb.AppendLine(StateMergeHolder(true));
             sb.AppendLine(StateGrinder(false));
             StateProjector(true);
-            sb.AppendLine("Pistons at: " + extentionPistons.CurrentLength);
-
-            //Take timeshot if we havnt
-            if (buildTimer.Running == false)
-            { 
-                //check components
-                if (BuildRequired())
-                {
-                    sb.AppendLine("Waiting for Required Components . . .");
-                }
-                else
-                {
-                    buildTimer.Restart();
-                }
-            }
+            
+            if (buildTimer.Running == false) buildTimer.Restart();
             else
             {
                 //If we've been building for longer than required length
@@ -770,7 +806,6 @@ namespace IngameScript
             sb.AppendLine(StateMergeHolder(true));
             sb.AppendLine(StateGrinder(false));
             StateProjector(false);
-            sb.AppendLine("Pistons at: " + extentionPistons.CurrentLength);
 
             extentionPistons.Descend(SpeedDescend1);
 
@@ -803,7 +838,6 @@ namespace IngameScript
             sb.AppendLine(StateMergeHolder(false));
             sb.AppendLine(StateGrinder(false));
             StateProjector(false);
-            sb.AppendLine("Pistons at: " + extentionPistons.CurrentLength);
 
             extentionPistons.Descend(SpeedDescend2);
 
@@ -825,7 +859,6 @@ namespace IngameScript
             sb.AppendLine(StateMergeHolder(true));
             sb.AppendLine(StateGrinder(false));
             StateProjector(false);
-            sb.AppendLine("Pistons at: " + extentionPistons.CurrentLength);
 
             sb.AppendLine("Waiting for Rototaion of Drill To Clear Bottom of Pit");
             if (startClearingRotation == -1000)
@@ -871,7 +904,6 @@ namespace IngameScript
                 sb.AppendLine(StateMergeHolder(true));
                 sb.AppendLine(StateGrinder(true));
                 StateProjector(false);
-                sb.AppendLine("Pistons at: " + extentionPistons.CurrentLength);
                 sb.AppendLine("Timer: " + grindTimer.TotalMilliseconds + "/" + grindTimerLength);
                 sb.AppendLine("Grinding . . . ");
 
@@ -890,7 +922,6 @@ namespace IngameScript
                 sb.AppendLine(StateMergeHolder(true));
                 sb.AppendLine(StateGrinder(false));
                 StateProjector(false);
-                sb.AppendLine("Pistons at: " + extentionPistons.CurrentLength);
                 sb.AppendLine("Waiting for Holder To Connect. . . ");
             }
         }
@@ -901,9 +932,8 @@ namespace IngameScript
             sb.AppendLine(StateMergeHolder(true));
             sb.AppendLine(StateGrinder(true));
             StateProjector(true);
-            sb.AppendLine("Pistons at: " + extentionPistons.CurrentLength);
             sb.AppendLine("Waiting for Pistins to Retract . . .");
-            if(extentionPistons.CurrentLength < .1 && extentionPistons.MovementState == PistonMovementState.Static)
+            if(extentionPistons.CurrentLength > 0 && extentionPistons.MovementState == PistonMovementState.Static)
             {
                 extentionPistons.Ascend(SpeedAscend);
             }
@@ -913,94 +943,48 @@ namespace IngameScript
             }
         }
 
-        private string SolveState(StringBuilder sb)
+        private MinerState SolveState(StringBuilder sb)
         {
             sb.AppendLine("Calculating State");
-            sb.AppendLine("Piston Length: " + extentionPistons.CurrentLength);
-            string state = "";
-            if (projector.Enabled)
+            List<KeyValuePair<MinerState, IMyInteriorLight>> active = new List<KeyValuePair<MinerState, IMyInteriorLight>>();
+            foreach(var l in minerStateLights)
             {
-                if (extentionPistons.MovementState == PistonMovementState.Static && extentionPistons.CurrentLength == 0)
+                if (l.Value.Enabled)
                 {
-                    sb.AppendLine("Pistons at Top and stopped - Build Extention");
-                    SetState(MinerState.BuildingExtention);
+                    sb.AppendLine("Light " + l.Key + ": " + l.Value.Enabled.ToString());
+                    active.Add(new KeyValuePair<MinerState, IMyInteriorLight>(MinerState.AllStates[l.Key], l.Value));
                 }
-                else
-                {
-                    sb.AppendLine("Projector Enabled and Pistons not at Top - Retracting");
-                    SetState(MinerState.Retracting);
-                }
+            }
+            //Order the states and go for min
+            MinerState newState;
+            //If we have no active, lets assume We're are the start, BUILD!
+            if (active.Count == 0)
+            {
+                sb.AppendLine("None Active - Setting to Build Extention");
+                newState = MinerState.BuildComp;
             }
             else
             {
-                //Are we holding the drill head
-                if (holderMerger.IsConnected)
-                {
-                    sb.AppendLine("holderMerger Connected");
-                    //if pistons are not moving and are at top, we are building
-                    if (extentionPistons.MovementState == PistonMovementState.Static && extentionPistons.CurrentLength < .1)
-                    {
-                        sb.AppendLine("Pistons at Top and stopped - Build Extention");
-                        SetState(MinerState.BuildingExtention);
-                    }
-                    else if (extentionPistons.MovementDirection == PistonDirection.Ascending)
-                    {
-                        sb.AppendLine("Pistions Ascending - Ascending");
-                        SetState(MinerState.Retracting);
-                    }
-                    else if (grinder.Enabled == true)
-                    {
-                        SetState(MinerState.Grinding);
-                        sb.AppendLine("Grinder is going - Grinder");
-                    }
-                    else if (extentionPistons.MovementState == PistonMovementState.Static && extentionPistons.CurrentLength > DescendLengthBottom)
-                    {
-                        SetState(MinerState.DrillClearBottom);
-                        sb.AppendLine("Drill Clear Bottom as At End");
-                    }
-                    else if (extentionPistons.MovementState == PistonMovementState.Static && extentionPistons.CurrentLength <= DescendLength2Max)
-                    {
-                        sb.AppendLine("Pistions Stopped First Half - Descending");
-                        SetState(MinerState.Descending);
-                    }
-                    else if (extentionPistons.MovementState == PistonMovementState.Static && extentionPistons.CurrentLength > DescendLength2Max)
-                    {
-                        sb.AppendLine("Pistions Stopped Half way - Descending 2");
-                        SetState(MinerState.Descending2);
-                    }
-                    else
-                    {
-                        sb.AppendLine("Coudnt Calculate Piston Direction return to INIT");
-                        SetState(MinerState.Init);
-                    }
-                }
-                //If we are not holding the drill head
-                else
-                {
-                    if (extentionPistons.CurrentLength <= DescendLength2Max)
-                    {
-                        sb.AppendLine("Pistions Descending First Part - Descending");
-                        SetState(MinerState.Descending);
-                    }
-                    else if (extentionPistons.CurrentLength > DescendLength2Max)
-                    {
-                        sb.AppendLine("Pistions Descending Second Part - Descending 2");
-                        SetState(MinerState.Descending2);
-                    }
-                    else
-                    {
-                        sb.AppendLine("Coudnt Calculate Piston Direction return to INIT");
-                        SetState(MinerState.Init);
-                    }
-                }
+                newState = active.OrderBy(d => d.Key.Order).First().Key;
+                sb.AppendLine("New State " + newState.State);
             }
-            return state;
+            SetState(newState);
+            return newState;
         }
         
-        private void SetState(string State)
+        private void SetState(MinerState State)
         {
+            Echo("Set State " + State.State);
             curState = State;
-            deadmanTimer.Restart();
+            //Set Light
+            if (!(State.State == MinerState.Init.State || State.State == MinerState.Init2.State || State.State == MinerState.Init3.State))
+            {
+                foreach (var l in minerStateLights)
+                {
+                    l.Value.Enabled = false;
+                }
+                minerStateLights[State.State].Enabled = true;
+            }
         }
     }
 }
