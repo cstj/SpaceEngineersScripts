@@ -30,12 +30,17 @@ namespace IngameScript
 
         public float DescendLength2Min = .35f;
         public float DescendLength2Max = .6f;
-        public float DescendLengthBottom = 3.8f;
+        public float DescendLengthBottom = 3.95f;
+        public float DescendLengthTop = 0;
+
+        public double LimitStop = 90;
+        public double LimitContinue = 50;
 
 
         Dictionary<string, string> TypeToBlueprint;
         Dictionary<string, int> TypeToRequired;
-        double limit = 90;
+        double limit;
+        int counter;
 
         public class Timer
         {
@@ -249,7 +254,7 @@ namespace IngameScript
         IMyMotorAdvancedStator drillRotor;
 
         Timer buildTimer = new Timer();
-        double builtTimerLength = 10;
+        double builtTimerLength = 20;
 
         Timer grindTimer = new Timer();
         double grindTimerLength = 10;
@@ -277,7 +282,8 @@ namespace IngameScript
         IMyInventory invComp;
 
         string invStoneString = prefix + "Cargo Stone";
-        IMyInventory invStone;
+        List<IMyInventory> invStone = new List<IMyInventory>();
+        double invStoneTotalSpace = 0;
 
         string cargoIngotsString = prefix + "Cargo Ingots";
         IMyInventory invIngots;
@@ -292,6 +298,7 @@ namespace IngameScript
         public Program()
         {
             StringBuilder sb = new StringBuilder();
+            limit = LimitStop;
             sb.AppendLine("Running " + DateTime.Now);
             TypeToBlueprint = new Dictionary<string, string>
             {
@@ -357,17 +364,19 @@ namespace IngameScript
                 }
                 else if (b.CustomName == invCompString)
                 {
-                    invComp = b.GetInventory(0) as IMyInventory;
+                    invComp = b.GetInventory(0);
                     sb.AppendLine("Found Cargo Comp");
                 }
                 else if (b.CustomName == invStoneString)
                 {
-                    invStone = b.GetInventory(0) as IMyInventory;
+                    IMyInventory inv = b.GetInventory(0);
+                    invStone.Add(inv);
+                    invStoneTotalSpace += ((double)inv.MaxVolume);
                     sb.AppendLine("Found Cargo Stone");
                 }
                 else if (b.CustomName == cargoIngotsString)
                 {
-                    invIngots = b.GetInventory(0) as IMyInventory;
+                    invIngots = b.GetInventory(0);
                     sb.AppendLine("Found Cargo Ingots");
                 }
                 //State LIghts
@@ -383,7 +392,6 @@ namespace IngameScript
                     }
                 }
             }
-
             sb.AppendLine();
 
             List<IMyBlockGroup> gridGroups = new List<IMyBlockGroup>();
@@ -504,29 +512,42 @@ namespace IngameScript
         public void Main(string argument, UpdateType updateSource)
         {
             StringBuilder sb = new StringBuilder();
-            SortCargo();
             sb.AppendLine("Running Main " + DateTime.Now);
-
 
             if (onLight.Enabled == true)
             {
+                //Only Sort Cargo Sometimes
+                if (counter > 10)
+                {
+                    SortCargo();
+                    counter = 0;
+                }
+                counter++;
+
                 sb.Append("State: ").AppendLine(curState.State);
                 sb.AppendLine(extentionPistons.UpdatePistons(curState));
-                sb.AppendLine(StateDrillRotor(true));
-                StateDrills(true);
-
-                var perComp = Math.Round((((double)invComp.CurrentVolume) / ((double)invComp.MaxVolume)) * 100, 0);
-                var perStone = Math.Round((((double)invStone.CurrentVolume) / ((double)invStone.MaxVolume)) * 100, 0);
-                var perIngot = Math.Round((((double)invIngots.CurrentVolume) / ((double)invIngots.MaxVolume)) * 100, 0);
                 
+
+                //Test Cargo Limits
+                var perComp = Math.Round((((double)invComp.CurrentVolume) / ((double)invComp.MaxVolume)) * 100, 0);
+                var perIngot = Math.Round((((double)invIngots.CurrentVolume) / ((double)invIngots.MaxVolume)) * 100, 0);
+                double curStone = 0;
+                foreach (var b in invStone) curStone += ((double)b.CurrentVolume);
+                var perStone = Math.Round((curStone / invStoneTotalSpace) * 100, 0);
+
+                //if a cargo is over the limit set
                 if (perComp > limit
                     || (perStone > limit)
                     || (perIngot > limit))
                 {
-                    limit = 50;
-                    if (invIngots.IsFull) sb.AppendLine("Ingot Cargo Full - Pausing - " + perIngot);
-                    if (invComp.IsFull) sb.AppendLine("Components Cargo Full - Pausing - " + perComp);
-                    if (invStone.IsFull) sb.AppendLine("Stone Cargo Full - Pausing - " + perStone);
+                    //Set the limit to the Continue Value
+                    limit = LimitContinue;
+                    sb.AppendLine("Pausing - Cargo Over Limit " + LimitStop + "%");
+                    sb.AppendLine("Continue when Cargo Falls Below " + LimitContinue + "%");
+                    sb.AppendLine("Ingot Cargo - " + perIngot + "%");
+                    sb.AppendLine("Components Cargo  - " + perComp + "%");
+                    sb.AppendLine("Stone Cargo  - " + perStone + "%");
+                    //Stop all the things
                     sb.AppendLine(StateWelders(false));
                     sb.AppendLine(StateGrinder(false));
                     sb.AppendLine(StateDrills(false));
@@ -535,13 +556,17 @@ namespace IngameScript
                 }
                 else
                 {
-                    limit = 90;
+                    //Start Drills and Rotors and set limit to stop limit
+                    StateDrills(true);
+                    sb.AppendLine(StateDrillRotor(true));
+                    limit = LimitStop;
                     if (curState.State == MinerState.Init.State) {
                         startClearingRotation = -1000;
                         SetState(MinerState.Init2);
                     }
                     else if (curState.State == MinerState.Init2.State)
                     {
+                        //Waste some time to make sure we can get a bearing on the pistons
                         SetState(MinerState.Init3);
                     }
                     else if (curState.State == MinerState.Init3.State)
@@ -667,7 +692,7 @@ namespace IngameScript
         {
             SortCargo(invComp, "MyObjectBuilder_Component");
             SortCargo(invIngots, "MyObjectBuilder_Ingot");
-            SortCargo(invStone, "MyObjectBuilder_Ore");
+            foreach(var b in invStone) SortCargo(b, "MyObjectBuilder_Ore");
             SortCargo(invAssembler, "");
         }
 
@@ -676,6 +701,8 @@ namespace IngameScript
             List<MyInventoryItem> items = new List<MyInventoryItem>();
             MyInventoryItem item;
             inv.GetItems(items);
+            MyFixedPoint space;
+            MyFixedPoint amtLeft;
             for (int k = 0; k < items.Count; k++)
             {
                 item = items[k];
@@ -689,10 +716,14 @@ namespace IngameScript
                 }
                 else if (item.Type.TypeId == "MyObjectBuilder_Ore" && item.Type.TypeId != notMove)
                 {
-                    inv.TransferItemTo(invStone, item, item.Amount);
+                    amtLeft = item.Amount;
+                    foreach (var b in invStone)
+                    {
+                        if (!b.IsFull) inv.TransferItemTo(b, item);
+                        if (amtLeft == 0) break;
+                    }
                 }
             }
-
         }
 
         private void StateProjector(bool state)
@@ -826,7 +857,7 @@ namespace IngameScript
             if (grinder.Enabled == true) grinder.Enabled = false;
 
             //Wait till bottom
-            if (extentionPistons.CurrentLength > 3.8 && extentionPistons.MovementState == PistonMovementState.Static)
+            if (extentionPistons.CurrentLength > DescendLengthBottom && extentionPistons.MovementState == PistonMovementState.Static)
             {
                 SetState(MinerState.DrillClearBottom);
             }
@@ -912,7 +943,7 @@ namespace IngameScript
             sb.AppendLine(StateGrinder(true));
             StateProjector(true);
             sb.AppendLine("Waiting for Pistins to Retract . . .");
-            if(extentionPistons.CurrentLength > 0 && extentionPistons.MovementState == PistonMovementState.Static)
+            if(extentionPistons.CurrentLength > DescendLengthTop && extentionPistons.MovementState == PistonMovementState.Static)
             {
                 extentionPistons.Ascend(SpeedAscend);
             }
