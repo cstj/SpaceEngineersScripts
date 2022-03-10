@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Inventory Trigger", "Invent
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Inf Miner Script", "Inf Miner Script\Inf Miner Script.csproj", "{FD330A8F-04BF-478C-B4E4-5F5A854608B1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Vent Automation", "Vent Automation\Vent Automation.csproj", "{A546EE4E-C27F-43E0-89F1-F34EC7887C38}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -28,6 +30,8 @@ Global
 		{4BE01FF5-08A0-4BAF-987B-1D93113BFA59}.Debug|x64.Build.0 = Debug|x64
 		{FD330A8F-04BF-478C-B4E4-5F5A854608B1}.Debug|x64.ActiveCfg = Debug|x64
 		{FD330A8F-04BF-478C-B4E4-5F5A854608B1}.Debug|x64.Build.0 = Debug|x64
+		{A546EE4E-C27F-43E0-89F1-F34EC7887C38}.Debug|x64.ActiveCfg = Debug|x64
+		{A546EE4E-C27F-43E0-89F1-F34EC7887C38}.Debug|x64.Build.0 = Debug|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
