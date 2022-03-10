@@ -73,11 +73,9 @@ namespace IngameScript
             public static MinerState Init => new MinerState { Order = 0, State = "Init" };
             public static MinerState Init2 => new MinerState { Order = 0, State = "Init 2" };
             public static MinerState Init3 => new MinerState { Order = 0, State = "Init 3" };
-            public static MinerState BuildComp => new MinerState { Order = 0, State = "Building Components" };
             public static MinerState BuildingExtention => new MinerState { Order = 0, State = "Building Extention" };
             public static MinerState Descending => new MinerState { Order = 0, State = "Descending" };
             public static MinerState Descending2 => new MinerState { Order = 0, State = "Descending 2" };
-            public static MinerState DrillClearBottom => new MinerState { Order = 0, State = "Drill Clear Bottom" };
             public static MinerState Grinding => new MinerState { Order = 0, State = "Grinding" };
             public static MinerState Retracting => new MinerState { Order = 0, State = "Retracting" };
 
@@ -86,11 +84,9 @@ namespace IngameScript
                 { Init.State, Init },
                 { Init2.State, Init2 },
                 { Init3.State, Init3 },
-                { BuildComp.State, BuildComp },
                 { BuildingExtention.State, BuildingExtention },
                 { Descending.State, Descending },
                 { Descending2.State, Descending2 },
-                { DrillClearBottom.State, DrillClearBottom },
                 { Grinding.State, Grinding },
                 { Retracting.State, Retracting },
             };
@@ -253,22 +249,11 @@ namespace IngameScript
         string drillRotorString = prefix + "Drill Rotor";
         IMyMotorAdvancedStator drillRotor;
 
-        Timer buildTimer = new Timer();
-        double builtTimerLength = 20;
-
         Timer grindTimer = new Timer();
         double grindTimerLength = 10;
 
         Timer descend1Timer = new Timer();
         double descend1TimerLength = 1;
-
-        Timer clearTimer = new Timer();
-        double clearTimerLength = 30;
-
-        float startClearingRotation = -1000;
-        //Timer clearTimer = new Timer();
-        //double clearTimerLength = 3000;
-        private bool clearFlipped;
 
         string offLightString = prefix + "Light Off";
         IMyInteriorLight offLight;
@@ -278,19 +263,21 @@ namespace IngameScript
         string projectorString = prefix + "Projector";
         IMyProjector projector;
 
-        string invCompString = prefix + "Cargo Comp";
-        IMyInventory invComp;
+        string invCompString = prefix + "Cargo CompStor";
+        List<IMyInventory> invComp = new List<IMyInventory>();
+        double invCompTotalSpace = 0;
 
         string invStoneString = prefix + "Cargo Stone";
         List<IMyInventory> invStone = new List<IMyInventory>();
         double invStoneTotalSpace = 0;
 
-        string cargoIngotsString = prefix + "Cargo Ingots";
-        IMyInventory invIngots;
+        string cargoIngotsString = prefix + "Cargo Instor";
+        List<IMyInventory> invIngots = new List<IMyInventory>();
+        double invIngotTotalSpace = 0;
 
         string assemblerString = prefix + "Assembler";
         IMyAssembler assembler;
-        IMyInventory invAssembler;
+        List<IMyInventory> invAssembler = new List<IMyInventory>();
 
         string minerStateLightsString = prefix + "Light State ";
         Dictionary<string, IMyInteriorLight> minerStateLights = new Dictionary<string, IMyInteriorLight>();
@@ -311,12 +298,12 @@ namespace IngameScript
             };
             TypeToRequired = new Dictionary<string, int>
             {
-                { "MyObjectBuilder_BlueprintDefinition/ConstructionComponent", 31*1 },
-                { "MyObjectBuilder_BlueprintDefinition/InteriorPlate", 22*1 },
-                { "MyObjectBuilder_BlueprintDefinition/SteelPlate", 11*1 },
-                { "MyObjectBuilder_BlueprintDefinition/SmallTube", 3*1 },
-                { "MyObjectBuilder_BlueprintDefinition/MotorComponent", 16*1 },
-                { "MyObjectBuilder_BlueprintDefinition/ComputerComponent", 3*1 },
+                { "MyObjectBuilder_BlueprintDefinition/ConstructionComponent", 31*1 + 10 },
+                { "MyObjectBuilder_BlueprintDefinition/InteriorPlate", 22*1 + 8 },
+                { "MyObjectBuilder_BlueprintDefinition/SteelPlate", 11*1 + 4 },
+                { "MyObjectBuilder_BlueprintDefinition/SmallTube", 3*1 + 2 },
+                { "MyObjectBuilder_BlueprintDefinition/MotorComponent", 16*1 + 6 },
+                { "MyObjectBuilder_BlueprintDefinition/ComputerComponent", 3*1 + 2 },
             };
            
             //Get the Refrences to things
@@ -356,27 +343,31 @@ namespace IngameScript
                     projector = b as IMyProjector;
                     sb.AppendLine("Found Projector");
                 }
-                else if (b.CustomName == assemblerString)
+                else if (b.CustomName.StartsWith(assemblerString))
                 {
                     assembler = b as IMyAssembler;
-                    invAssembler = b.GetInventory(1);
+                    invAssembler.Add(b.GetInventory(1));
                     sb.AppendLine("Found Assembler");
                 }
-                else if (b.CustomName == invCompString)
+                else if (b.CustomName.StartsWith(invCompString))
                 {
-                    invComp = b.GetInventory(0);
+                    IMyInventory inv = b.GetInventory(0);
+                    invComp.Add(b.GetInventory(0));
+                    invCompTotalSpace += ((double)inv.MaxVolume);
                     sb.AppendLine("Found Cargo Comp");
                 }
-                else if (b.CustomName == invStoneString)
+                else if (b.CustomName.StartsWith(invStoneString))
                 {
                     IMyInventory inv = b.GetInventory(0);
                     invStone.Add(inv);
                     invStoneTotalSpace += ((double)inv.MaxVolume);
                     sb.AppendLine("Found Cargo Stone");
                 }
-                else if (b.CustomName == cargoIngotsString)
+                else if (b.CustomName.StartsWith(cargoIngotsString))
                 {
-                    invIngots = b.GetInventory(0);
+                    IMyInventory inv = b.GetInventory(0);
+                    invIngots.Add(b.GetInventory(0));
+                    invIngotTotalSpace += ((double)inv.MaxVolume);
                     sb.AppendLine("Found Cargo Ingots");
                 }
                 //State LIghts
@@ -461,25 +452,25 @@ namespace IngameScript
                 envTest = false;
                 sb.AppendLine("Projector not Found");
             }
-            if (invStone == null)
+            if (invStone.Count == 0)
             {
                 envTest = false;
-                sb.AppendLine("Cargo Stone not Found");
+                sb.AppendLine("Cargo Stone not Found - " + invStoneString);
             }
-            if (invComp == null)
+            if (invComp.Count == 0)
             {
                 envTest = false;
-                sb.AppendLine("Cargo Comp not Found");
+                sb.AppendLine("Cargo Comp not Found - " + invCompString);
             }
             if (assembler == null || invAssembler == null)
             {
                 envTest = false;
                 sb.AppendLine("Assembler not Found");
             }
-            if (invIngots == null)
+            if (invIngots.Count == 0)
             {
                 envTest = false;
-                sb.AppendLine("Cargo Ingots not Found");
+                sb.AppendLine("Cargo Ingots not Found - "  + cargoIngotsString);
             }
             if (minerStateLights.Count != MinerState.AllStates.Count - 3)
             {
@@ -526,14 +517,17 @@ namespace IngameScript
 
                 sb.Append("State: ").AppendLine(curState.State);
                 sb.AppendLine(extentionPistons.UpdatePistons(curState));
-                
 
                 //Test Cargo Limits
-                var perComp = Math.Round((((double)invComp.CurrentVolume) / ((double)invComp.MaxVolume)) * 100, 0);
-                var perIngot = Math.Round((((double)invIngots.CurrentVolume) / ((double)invIngots.MaxVolume)) * 100, 0);
-                double curStone = 0;
-                foreach (var b in invStone) curStone += ((double)b.CurrentVolume);
-                var perStone = Math.Round((curStone / invStoneTotalSpace) * 100, 0);
+                double curInv = 0;
+                foreach (var b in invComp) curInv += ((double)b.CurrentVolume);
+                var perComp = Math.Round((curInv / invCompTotalSpace) * 100, 0);
+                curInv = 0;
+                foreach (var b in invIngots) curInv += ((double)b.CurrentVolume);
+                var perIngot = Math.Round((curInv / invIngotTotalSpace) * 100, 0);
+                curInv = 0;
+                foreach (var b in invStone) curInv += ((double)b.CurrentVolume);
+                var perStone = Math.Round((curInv / invStoneTotalSpace) * 100, 0);
 
                 //if a cargo is over the limit set
                 if (perComp > limit
@@ -560,47 +554,14 @@ namespace IngameScript
                     StateDrills(true);
                     sb.AppendLine(StateDrillRotor(true));
                     limit = LimitStop;
-                    if (curState.State == MinerState.Init.State) {
-                        startClearingRotation = -1000;
-                        SetState(MinerState.Init2);
-                    }
-                    else if (curState.State == MinerState.Init2.State)
-                    {
-                        //Waste some time to make sure we can get a bearing on the pistons
-                        SetState(MinerState.Init3);
-                    }
-                    else if (curState.State == MinerState.Init3.State)
-                    {
-                        SolveState(sb);
-                    }
-                    else if (curState.State == MinerState.BuildComp.State)
-                    {
-                        BuildComp(sb);
-                    }
-                    else if (curState.State == MinerState.BuildingExtention.State)
-                    {
-                        BuildExtention(sb);
-                    }
-                    else if (curState.State == MinerState.Descending.State)
-                    {
-                        Descending(sb);
-                    }
-                    else if (curState.State == MinerState.Descending2.State)
-                    {
-                        Descending2(sb);
-                    }
-                    else if (curState.State == MinerState.DrillClearBottom.State)
-                    {
-                        DrillClearBottom(sb);
-                    }
-                    else if (curState.State == MinerState.Grinding.State)
-                    {
-                        Grinder(sb);
-                    }
-                    else if (curState.State == MinerState.Retracting.State)
-                    {
-                        Retracting(sb);
-                    }
+                    if (curState.State == MinerState.Init.State) SetState(MinerState.Init2);
+                    else if (curState.State == MinerState.Init2.State)SetState(MinerState.Init3);
+                    else if (curState.State == MinerState.Init3.State) SolveState(sb);
+                    else if (curState.State == MinerState.BuildingExtention.State) BuildExtention(sb);
+                    else if (curState.State == MinerState.Descending.State) Descending(sb);
+                    else if (curState.State == MinerState.Descending2.State) Descending2(sb);
+                    else if (curState.State == MinerState.Grinding.State) Grinder(sb);
+                    else if (curState.State == MinerState.Retracting.State) Retracting(sb);
                 }
             }
             else
@@ -620,22 +581,12 @@ namespace IngameScript
 
         private bool HaveRequiredComp(StringBuilder sb)
         {
-            MyInventoryItem i;
-            List<MyInventoryItem> items = new List<MyInventoryItem>();
-            invComp.GetItems(items);
+            //List<MyInventoryItem> items = new List<MyInventoryItem>();
             Dictionary<string, int> itemsCol = new Dictionary<string, int>();
             int amount;
             string type;
-            //Get amounts
-            for (int k = 0; k < items.Count; k++)
-            {
-                i = items[k];
-                amount = 0;
-                type = TypeToBlueprint[i.Type.ToString()];
-                itemsCol.TryGetValue(type, out amount);
-                amount += (int)i.Amount;
-                itemsCol[type] = amount;
-            }
+            foreach (var inv in invComp) GetCompInInv(inv, itemsCol);
+            foreach (var inv in invAssembler) GetCompInInv(inv, itemsCol);
 
             //Queue whats needed
             MyDefinitionId blueprint;
@@ -654,6 +605,7 @@ namespace IngameScript
                 queuedAmt = 0;
                 assQueue.TryGetValue(bptString, out queuedAmt);    //Take away any more we have queued.
                 need = d.Value - amount - queuedAmt;
+                //Echo(d.Key + "\nR" + d.Value + "A" + amount + " QA" + queuedAmt + " N" + need);
                 if (need > 0)
                 {
                     haveComp = false;
@@ -670,6 +622,25 @@ namespace IngameScript
                 }
             }
             return haveComp;
+        }
+
+        private void GetCompInInv(IMyInventory inv, Dictionary<string, int> itemsCol)
+        {
+            MyInventoryItem i;
+            List<MyInventoryItem> items = new List<MyInventoryItem>();
+            int amount;
+            string type;
+            inv.GetItems(items);
+            //Get amounts
+            for (int k = 0; k < items.Count; k++)
+            {
+                i = items[k];
+                amount = 0;
+                type = TypeToBlueprint[i.Type.ToString()];
+                itemsCol.TryGetValue(type, out amount);
+                amount += (int)i.Amount;
+                itemsCol[type] = amount;
+            }
         }
 
         private Dictionary<string, int> SortQueue(List<MyProductionItem> queue)
@@ -690,10 +661,10 @@ namespace IngameScript
 
         private void SortCargo() 
         {
-            SortCargo(invComp, "MyObjectBuilder_Component");
-            SortCargo(invIngots, "MyObjectBuilder_Ingot");
+            foreach (var b in invComp) SortCargo(b, "MyObjectBuilder_Component");
+            foreach (var b in invIngots) SortCargo(b, "MyObjectBuilder_Ingot");
             foreach(var b in invStone) SortCargo(b, "MyObjectBuilder_Ore");
-            SortCargo(invAssembler, "");
+            foreach (var b in invStone) SortCargo(b, "");
         }
 
         private void SortCargo(IMyInventory inv, string notMove)
@@ -701,27 +672,25 @@ namespace IngameScript
             List<MyInventoryItem> items = new List<MyInventoryItem>();
             MyInventoryItem item;
             inv.GetItems(items);
-            MyFixedPoint space;
-            MyFixedPoint amtLeft;
             for (int k = 0; k < items.Count; k++)
             {
                 item = items[k];
-                if (item.Type.TypeId == "MyObjectBuilder_Component" && item.Type.TypeId != notMove)
+                SortCargoTestItem(inv, invComp, item, "MyObjectBuilder_Component", notMove);
+                SortCargoTestItem(inv, invIngots, item, "MyObjectBuilder_Ingot", notMove);
+                SortCargoTestItem(inv, invStone, item, "MyObjectBuilder_Ore", notMove);
+            }
+        }
+
+        public void SortCargoTestItem(IMyInventory fromInv, List<IMyInventory> toInv, MyInventoryItem item, string testType, string notMove)
+        {
+            MyFixedPoint amtLeft;
+            if (item.Type.TypeId == testType && item.Type.TypeId != notMove)
+            {
+                amtLeft = item.Amount;
+                foreach (var b in toInv)
                 {
-                    inv.TransferItemTo(invComp, item, item.Amount);
-                }
-                else if (item.Type.TypeId == "MyObjectBuilder_Ingot" && item.Type.TypeId != notMove)
-                {
-                    inv.TransferItemTo(invIngots, item, item.Amount);
-                }
-                else if (item.Type.TypeId == "MyObjectBuilder_Ore" && item.Type.TypeId != notMove)
-                {
-                    amtLeft = item.Amount;
-                    foreach (var b in invStone)
-                    {
-                        if (!b.IsFull) inv.TransferItemTo(b, item);
-                        if (amtLeft == 0) break;
-                    }
+                    if (!b.IsFull) fromInv.TransferItemTo(b, item);
+                    if (amtLeft == 0) break;
                 }
             }
         }
@@ -767,25 +736,6 @@ namespace IngameScript
             else return "Grinder: Disabled";
         }
 
-        private void BuildComp(StringBuilder sb)
-        {
-            sb.AppendLine("Building Extention");
-            sb.AppendLine(StateWelders(true));
-            sb.AppendLine(StateMergeHolder(true));
-            sb.AppendLine(StateGrinder(false));
-            StateProjector(true);
-
-            if (!HaveRequiredComp(sb))
-            {
-                sb.AppendLine("Waiting for Required Components . . .");
-            }
-            else
-            {
-                buildTimer.Running = false;
-                SetState(MinerState.BuildingExtention);
-                sb.AppendLine("Moving To Buildign Exten");
-            }
-        }
         private void BuildExtention(StringBuilder sb)
         {
             sb.AppendLine("Building Extention");
@@ -793,26 +743,20 @@ namespace IngameScript
             sb.AppendLine(StateMergeHolder(true));
             sb.AppendLine(StateGrinder(false));
             StateProjector(true);
-            
-            if (buildTimer.Running == false) buildTimer.Restart();
-            else
+            sb.AppendLine("Remaining Blocks: " + projector.RemainingBlocks);
+
+            //If we've been building for longer than required length
+            if (projector.RemainingBlocks == 0)
             {
-                //If we've been building for longer than required length
-                if (buildTimer.TotalSeconds > builtTimerLength)
-                {
-                    buildTimer.Running = false;
-                    curState = MinerState.Descending;
-                }
-                else
-                {
-                    sb.AppendLine("Timer: " + buildTimer.TotalSeconds + "/" + builtTimerLength);
-                }
+                curState = MinerState.Descending;
             }
+            sb.AppendLine();
+            HaveRequiredComp(sb);
         }
         
         private void Descending(StringBuilder sb)
         {
-            sb.AppendLine(StateWelders(false));
+            sb.AppendLine(StateWelders(true));
             sb.AppendLine(StateMergeHolder(true));
             sb.AppendLine(StateGrinder(false));
             StateProjector(false);
@@ -848,59 +792,10 @@ namespace IngameScript
             sb.AppendLine(StateMergeHolder(false));
             sb.AppendLine(StateGrinder(false));
             StateProjector(false);
-
             extentionPistons.Descend(SpeedDescend2);
-
-            //Descend phase 2, release holder as the top is connected and go ALLL the way down.
-            if (holderMerger.Enabled == true) holderMerger.Enabled = false;
-            if (welders[0].Enabled == true) foreach (var w in welders) w.Enabled = false;
-            if (grinder.Enabled == true) grinder.Enabled = false;
-
             //Wait till bottom
             if (extentionPistons.CurrentLength > DescendLengthBottom && extentionPistons.MovementState == PistonMovementState.Static)
             {
-                SetState(MinerState.DrillClearBottom);
-            }
-        }
-
-        private void DrillClearBottom(StringBuilder sb)
-        {
-            sb.AppendLine(StateWelders(false));
-            sb.AppendLine(StateMergeHolder(true));
-            sb.AppendLine(StateGrinder(false));
-            StateProjector(false);
-            sb.AppendLine("Waiting for Rototaion of Drill To Clear Bottom of Pit");
-            sb.AppendLine("Timer: " + clearTimer.TotalSeconds + " / " + clearTimerLength);
-            if (startClearingRotation == -1000)
-            {
-                startClearingRotation = drillRotor.Angle;
-                clearTimer.Restart();
-                clearFlipped = false;
-            }
-            sb.AppendLine("Start Angle: " + startClearingRotation);
-            double percent;
-            double moved = drillRotor.Angle - startClearingRotation;
-            if (clearFlipped == false)
-            {
-                if (moved < 0)
-                {
-                    clearFlipped = true;
-                    moved = (2 * Math.PI - startClearingRotation) + drillRotor.Angle;
-                }
-            }
-            else
-            {
-                moved = (2 * Math.PI - startClearingRotation) + drillRotor.Angle;
-                if (drillRotor.Angle > startClearingRotation) moved = 2 * Math.PI + .1;
-            }
-
-            percent = Math.Round((moved / (Math.PI * 2)) * 100, 0);
-
-            sb.AppendLine("Rotor Angle: " + Math.Round(drillRotor.Angle, 2) + " (" + Math.Round(moved, 2) + " | " + percent + "%)");
-            if (clearTimer.TotalSeconds > clearTimerLength || moved >= (2 * Math.PI))
-            {
-                startClearingRotation = -1000;
-                clearTimer.Running = false;
                 SetState(MinerState.Grinding);
             }
         }
@@ -971,7 +866,7 @@ namespace IngameScript
             if (active.Count == 0)
             {
                 sb.AppendLine("None Active - Setting to Build Extention");
-                newState = MinerState.BuildComp;
+                newState = MinerState.BuildingExtention;
             }
             else
             {
