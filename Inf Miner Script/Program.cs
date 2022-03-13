@@ -787,8 +787,21 @@ namespace IngameScript
             StateProjector(true);
             sb.AppendLine("Remaining Blocks: " + projector.RemainingBlocks);
 
+            List<IMyTerminalBlock> blocks = new List<IMyTerminalBlock>();
+            GridTerminalSystem.GetBlocksOfType(blocks, b => b.CubeGrid == projector.CubeGrid);
+            float hlth;
+            int dmgBlk = 0;
+            foreach (var b in blocks)
+            {
+                hlth = GetMyTerminalBlockHealth(b);
+                //Echo(b.CustomName + hlth);
+                if (hlth < 1) dmgBlk++;
+            }
+            sb.AppendLine("Blocks to Finish:" + dmgBlk);
+            sb.AppendLine("Blocks to Start:" + projector.RemainingBlocks);
+
             //If we've been building for longer than required length
-            if (projector.RemainingBlocks == 0)
+            if (dmgBlk == 0 && projector.RemainingBlocks == 0)
             {
                 curState = MinerState.Descending;
             }
