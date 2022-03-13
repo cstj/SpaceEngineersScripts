@@ -279,6 +279,9 @@ namespace IngameScript
         IMyAssembler assembler;
         List<IMyInventory> invAssembler = new List<IMyInventory>();
 
+        string refinaryString = prefix + "Refinery";
+        List<IMyInventory> intRefinary = new List<IMyInventory>();
+
         string minerStateLightsString = prefix + "Light State ";
         Dictionary<string, IMyInteriorLight> minerStateLights = new Dictionary<string, IMyInteriorLight>();
 
@@ -369,6 +372,12 @@ namespace IngameScript
                     invIngots.Add(b.GetInventory(0));
                     invIngotTotalSpace += ((double)inv.MaxVolume);
                     sb.AppendLine("Found Cargo Ingots");
+                }
+                else if (b.CustomName.StartsWith(refinaryString))
+                {
+                    IMyInventory inv = b.GetInventory(0);
+                    intRefinary.Add(b.GetInventory(1));
+                    sb.AppendLine("Found Refinary");
                 }
                 //State LIghts
                 else
@@ -508,10 +517,12 @@ namespace IngameScript
             if (onLight.Enabled == true)
             {
                 //Only Sort Cargo Sometimes
-                if (counter > 10)
+                if (counter > 3)
                 {
+                    //Echo("Sorting Cargo");
                     SortCargo();
                     counter = 0;
+                    foreach (var b in intRefinary) SortCargo(b, "");
                 }
                 counter++;
 
@@ -659,12 +670,27 @@ namespace IngameScript
             return outList;
         }
 
+        int queueCounter = 0;
+        int sortNumber = 0;
         private void SortCargo() 
         {
-            foreach (var b in invComp) SortCargo(b, "MyObjectBuilder_Component");
-            foreach (var b in invIngots) SortCargo(b, "MyObjectBuilder_Ingot");
-            foreach(var b in invStone) SortCargo(b, "MyObjectBuilder_Ore");
-            foreach (var b in invStone) SortCargo(b, "");
+            if (sortNumber == 0) foreach (var b in invComp) SortCargo(b, "MyObjectBuilder_Component");
+            if (sortNumber == 1) foreach (var b in invIngots) SortCargo(b, "MyObjectBuilder_Ingot");
+            if (sortNumber == 2) foreach (var b in invStone) SortCargo(b, "MyObjectBuilder_Ore");
+            if (sortNumber == 3) foreach (var b in invAssembler) SortCargo(b, "");
+            if (sortNumber == 3) foreach (var b in intRefinary) SortCargo(b, "");
+
+            if (queueCounter > 10)
+            {
+                //HaveRequiredComp(new StringBuilder());
+                queueCounter = 0;
+            }
+            queueCounter++;
+            sortNumber++;
+            if (sortNumber >= 3)
+            {
+                sortNumber = 0;
+            }
         }
 
         private void SortCargo(IMyInventory inv, string notMove)
