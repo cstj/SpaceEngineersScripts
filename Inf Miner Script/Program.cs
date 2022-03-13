@@ -499,7 +499,6 @@ namespace IngameScript
             output.FontSize = 0.7f;
             output.ContentType = ContentType.TEXT_AND_IMAGE;
 
-            //TODO: Solve current state!
             Echo(sb.ToString());
             output.WriteText(sb.ToString());
         }
