@@ -558,11 +558,13 @@ namespace IngameScript
                     sb.AppendLine(StateDrills(false));
                     sb.AppendLine(StateDrillRotor(false));
                     extentionPistons.Descend(0);
+                    StatePistons(false);
                 }
                 else
                 {
                     //Start Drills and Rotors and set limit to stop limit
                     StateDrills(true);
+                    StatePistons(true);
                     sb.AppendLine(StateDrillRotor(true));
                     limit = LimitStop;
                     if (curState.State == MinerState.Init.State) SetState(MinerState.Init2);
@@ -583,6 +585,7 @@ namespace IngameScript
                 sb.AppendLine(StateDrills(false));
                 sb.AppendLine(StateDrillRotor(false));
                 extentionPistons.Descend(0);
+                StatePistons(false);
                 SetState(MinerState.Init);
             }
             Echo(sb.ToString());
@@ -760,6 +763,20 @@ namespace IngameScript
             if (grinder.Enabled == !state) grinder.Enabled = state;
             if (state) return "Grinder: Enabled";
             else return "Grinder: Disabled";
+        }
+
+        private void StatePistons(bool state)
+        {
+            if (extentionPistons.Pistons[0].Piston.Enabled == !state) foreach (var w in extentionPistons.Pistons) w.Piston.Enabled = state;
+        }
+
+        float GetMyTerminalBlockHealth(IMyTerminalBlock block)
+        {
+            IMySlimBlock slimblock = block.CubeGrid.GetCubeBlock(block.Position);
+            float MaxIntegrity = slimblock.MaxIntegrity;
+            float BuildIntegrity = slimblock.BuildIntegrity;
+            float CurrentDamage = slimblock.CurrentDamage;
+            return (BuildIntegrity - CurrentDamage) / MaxIntegrity;
         }
 
         private void BuildExtention(StringBuilder sb)
